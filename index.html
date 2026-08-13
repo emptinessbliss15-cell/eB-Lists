@@ -5,20 +5,30 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>eB Lists</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>body{font-family:system-ui;max-width:760px;margin:40px auto;padding:0 20px}input,button{font:inherit;padding:9px;margin:4px}button{cursor:pointer}.card{border:1px solid #8886;border-radius:12px;padding:18px;margin:16px 0}li{margin:9px 0;cursor:pointer}.muted{opacity:.7}</style>
 </head>
 <body>
-<main>
 <h1>eB Lists</h1>
-<p>eBliss shared identity and data foundation.</p>
-<p id="status">Connecting…</p>
-</main>
-<script>
-const supabase = window.supabase.createClient('https://zaabghrczrbqkxrhkinj.supabase.co', 'sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF');
-async function check() {
-  const { data, error } = await supabase.auth.getSession();
-  document.getElementById('status').textContent = error ? error.message : (data.session ? 'Connected — signed in.' : 'Connected — ready for sign in.');
-}
-check();
-</script>
+<p class="muted">One eBliss identity → many apps.</p>
+<section id="auth" class="card">
+<h2>Sign in</h2>
+<input id="email" type="email" placeholder="Email" autocomplete="email">
+<input id="password" type="password" placeholder="Password" autocomplete="current-password">
+<div><button id="signIn">Sign in</button><button id="signUp">Create account</button></div>
+</section>
+<section id="app" class="card" hidden>
+<div><strong id="user"></strong> <button id="signOut">Sign out</button></div>
+<h2>Lists</h2>
+<input id="listName" placeholder="New list name"><button id="newList">Create list</button>
+<ul id="lists"></ul>
+<div id="listView" hidden>
+<h2 id="activeList"></h2>
+<input id="item" placeholder="Add an item"><button id="newItem">Add</button>
+<ul id="items"></ul>
+<p class="muted">Click an item to toggle complete.</p>
+</div>
+</section>
+<p id="status" class="muted"></p>
+<script src="./app.js"></script>
 </body>
 </html>
