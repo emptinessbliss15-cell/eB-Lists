@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>eB Lists</title></head>
+<body><main><h1>eB Lists</h1><p>Minimal list app — first building block for eBliss.</p><input id="item" placeholder="Add an item"><button id="add">Add</button><ul id="list"></ul></main><script>const input=document.getElementById('item'),list=document.getElementById('list');document.getElementById('add').onclick=()=>{if(!input.value.trim())return;const li=document.createElement('li');li.textContent=input.value.trim();li.onclick=()=>li.remove();list.appendChild(li);input.value='';input.focus()};</script></body>
+</html>
