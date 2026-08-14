@@ -17,7 +17,7 @@ async function refreshLists() {
   lists.innerHTML = '';
   data.forEach(list => {
     const li = document.createElement('li');
-    li.textContent = list.name;
+    li.textContent = `${list.name} ${list.ordered ? '· ordered' : '· unordered'}`;
     li.onclick = () => openList(list);
     lists.appendChild(li);
   });
@@ -26,6 +26,7 @@ async function refreshLists() {
 async function openList(list) {
   activeList = list;
   document.getElementById('activeList').textContent = list.name;
+  document.getElementById('listMode').textContent = list.ordered ? 'Ordered' : 'Unordered';
   document.getElementById('listView').hidden = false;
   await refreshItems();
 }
@@ -43,6 +44,7 @@ async function refreshItems() {
     };
     items.appendChild(li);
   });
+  items.parentElement.tagName === 'OL' || items.parentElement.tagName === 'UL';
 }
 
 async function applySession(session) {
@@ -69,6 +71,7 @@ document.getElementById('signUp').onclick = async () => {
 
 document.getElementById('signOut').onclick = async () => {
   await supabase.auth.signOut({ scope: 'local' });
+  activeList = null;
   await applySession(null);
 };
 
@@ -76,9 +79,11 @@ document.getElementById('newList').onclick = async () => {
   const input = document.getElementById('listName');
   const name = input.value.trim();
   if (!name) return;
-  const result = await supabase.from('lists').insert({ name, owner_id: user.id });
+  const ordered = document.getElementById('listOrdered').checked;
+  const result = await supabase.from('lists').insert({ name, owner_id: user.id, ordered });
   if (result.error) return setStatus(result.error.message);
   input.value = '';
+  document.getElementById('listOrdered').checked = false;
   await refreshLists();
 };
 
