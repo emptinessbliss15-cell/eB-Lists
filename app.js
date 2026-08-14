@@ -27,6 +27,7 @@ async function openList(list) {
   activeList = list;
   document.getElementById('activeList').textContent = list.name;
   document.getElementById('listMode').textContent = list.ordered ? 'Ordered' : 'Unordered';
+  items.classList.toggle('ordered-items', !!list.ordered);
   document.getElementById('listView').hidden = false;
   await refreshItems();
 }
@@ -44,7 +45,6 @@ async function refreshItems() {
     };
     items.appendChild(li);
   });
-  items.parentElement.tagName === 'OL' || items.parentElement.tagName === 'UL';
 }
 
 async function applySession(session) {
@@ -72,6 +72,7 @@ document.getElementById('signUp').onclick = async () => {
 document.getElementById('signOut').onclick = async () => {
   await supabase.auth.signOut({ scope: 'local' });
   activeList = null;
+  document.getElementById('listView').hidden = true;
   await applySession(null);
 };
 
