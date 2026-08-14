@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root[data-density="compact"] { --eb-space: 3px; }
-  .eb-content { max-width: 900px; }
+  .eb-content { max-width: none; }
   .eb-card { padding: 8px; margin: 5px 0; }
   .eb-card h2 { font-size: 1rem; }
   .eb-list { margin: 3px 0; padding-left: 20px; }
@@ -19,6 +19,18 @@
   .eb-row input { min-width: 120px; }
   button, input { padding: 4px 7px; }
   .eb-spread { gap: 3px; }
+
+  /* Lists live in the second navigation column. */
+  .eb-tree { padding: 8px 6px; overflow: auto; }
+  .eb-list-nav-title { font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+  .eb-list-create { display: grid; gap: 4px; margin-bottom: 8px; }
+  .eb-list-create input[type="text"] { width: 100%; min-width: 0; }
+  .eb-list-create label { font-size: 12px; }
+  .eb-list-nav { list-style: none; padding: 0; margin: 0; }
+  .eb-list-nav li { margin: 1px 0; }
+  .eb-list-nav .eb-list-row { display: flex; gap: 2px; align-items: center; }
+  .eb-list-nav .eb-list-open { flex: 1; min-width: 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .eb-list-nav .eb-list-delete { flex: 0 0 auto; padding: 3px 5px; }
 </style>
 </head>
 <body data-density="compact">
@@ -31,7 +43,15 @@
   </header>
   <div class="eb-navigation">
     <nav id="appRail" class="eb-app-rail" aria-label="Applications"></nav>
-    <nav id="tree" class="eb-tree" aria-label="Context"></nav>
+    <nav id="tree" class="eb-tree" aria-label="Lists" hidden>
+      <div class="eb-list-nav-title">Lists</div>
+      <div class="eb-list-create">
+        <input id="listName" type="text" placeholder="New list name">
+        <label><input id="listOrdered" type="checkbox"> Ordered</label>
+        <button id="newList" type="button">Create list</button>
+      </div>
+      <ul id="lists" class="eb-list-nav"></ul>
+    </nav>
     <main class="eb-main">
       <div class="eb-content">
         <div class="eb-subheader">
@@ -51,12 +71,6 @@
         </section>
         <section id="app" class="eb-card" hidden>
           <div class="eb-spread"><strong id="user"></strong><button id="signOut" class="secondary">Sign out</button></div>
-          <div class="eb-row">
-            <input id="listName" placeholder="New list name">
-            <label><input id="listOrdered" type="checkbox"> Ordered</label>
-            <button id="newList">Create list</button>
-          </div>
-          <ul id="lists" class="eb-list"></ul>
           <div id="listView" hidden>
             <div class="eb-spread">
               <h2 id="activeList"></h2>
