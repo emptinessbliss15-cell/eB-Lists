@@ -33,6 +33,10 @@ class SupabaseQuery {
     return this;
   }
 
+  then(resolve, reject) {
+    return this.execute().then(resolve, reject);
+  }
+
   async execute() {
     if (!this.env.SUPABASE_URL || !this.env.SUPABASE_PUBLISHABLE_KEY) {
       return { data: null, error: new Error('Supabase configuration is missing') };
