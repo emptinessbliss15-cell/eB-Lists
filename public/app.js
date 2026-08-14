@@ -3,6 +3,7 @@ const status = document.getElementById('status');
 const app = document.getElementById('app');
 const auth = document.getElementById('auth');
 const tree = document.getElementById('tree');
+const signOut = document.getElementById('signOut');
 const email = document.getElementById('email');
 const password = document.getElementById('password');
 const lists = document.getElementById('lists');
@@ -134,7 +135,7 @@ async function applySession(session) {
   auth.hidden = !!user;
   app.hidden = !user;
   tree.hidden = !user;
-  document.getElementById('user').textContent = user?.email || '';
+  signOut.hidden = !user;
   if (user) await refreshLists();
 }
 
@@ -152,7 +153,7 @@ document.getElementById('signUp').onclick = async () => {
   else setStatus('Account created. Check your email if confirmation is required.');
 };
 
-document.getElementById('signOut').onclick = async () => {
+signOut.onclick = async () => {
   await supabaseClient.auth.signOut({ scope: 'local' });
   activeList = null;
   document.getElementById('listView').hidden = true;
