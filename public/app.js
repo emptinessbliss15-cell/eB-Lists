@@ -38,7 +38,7 @@ async function refreshLists() {
 async function openList(list) {
   activeList = list;
   document.getElementById('activeList').textContent = list.name;
-  document.getElementById('listMode').textContent = list.ordered ? 'Ordered' : 'Unordered';
+  document.getElementById('listMode').textContent = list.ordered ? 'Ordered · use ↑ / ↓ to arrange' : 'Unordered';
   items.classList.toggle('ordered-items', !!list.ordered);
   document.getElementById('listView').hidden = false;
   await refreshItems();
@@ -49,31 +49,71 @@ async function refreshItems() {
   const { data, error } = await supabaseClient.from('list_items').select('*').eq('list_id', activeList.id).order('position').order('created_at');
   if (error) return setStatus(error.message);
   items.innerHTML = '';
-  data.forEach(item => {
+  data.forEach((item, index) => {
     const li = document.createElement('li');
     const row = document.createElement('div');
-    row.className = 'eb-spread';
+    row.className = 'eb-spread eb-item-row';
+
     const toggle = document.createElement('button');
-    toggle.className = 'secondary';
+    toggle.className = 'secondary eb-item-text';
     toggle.type = 'button';
     toggle.textContent = item.completed ? '✓ ' + item.text : item.text;
     toggle.onclick = async () => {
       const result = await supabaseClient.from('list_items').update({ completed: !item.completed }).eq('id', item.id);
       if (result.error) setStatus(result.error.message); else refreshItems();
     };
+
+    const controls = document.createElement('span');
+    controls.className = 'eb-item-controls';
+
+    if (activeList.ordered) {
+      const up = document.createElement('button');
+      up.className = 'secondary eb-order-button';
+      up.type = 'button';
+      up.textContent = '↑';
+      up.title = 'Move up';
+      up.disabled = index === 0;
+      up.onclick = (event) => { event.stopPropagation(); moveItem(data, index, -1); };
+
+      const down = document.createElement('button');
+      down.className = 'secondary eb-order-button';
+      down.type = 'button';
+      down.textContent = '↓';
+      down.title = 'Move down';
+      down.disabled = index === data.length - 1;
+      down.onclick = (event) => { event.stopPropagation(); moveItem(data, index, 1); };
+      controls.append(up, down);
+    }
+
     const del = document.createElement('button');
-    del.className = 'secondary';
+    del.className = 'secondary eb-order-button';
     del.type = 'button';
-    del.textContent = 'Delete';
+    del.textContent = '×';
+    del.title = 'Delete item';
     del.onclick = async (event) => {
       event.stopPropagation();
       const result = await supabaseClient.from('list_items').delete().eq('id', item.id);
       if (result.error) setStatus(result.error.message); else refreshItems();
     };
-    row.append(toggle, del);
+    controls.appendChild(del);
+
+    row.append(toggle, controls);
     li.appendChild(row);
     items.appendChild(li);
   });
+}
+
+async function moveItem(data, index, direction) {
+  const targetIndex = index + direction;
+  if (!activeList?.ordered || targetIndex < 0 || targetIndex >= data.length) return;
+  const reordered = [...data];
+  [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+  const results = await Promise.all(
+    reordered.map((item, position) => supabaseClient.from('list_items').update({ position }).eq('id', item.id))
+  );
+  const error = results.find(result => result.error)?.error;
+  if (error) return setStatus(error.message);
+  await refreshItems();
 }
 
 async function deleteList(list) {
