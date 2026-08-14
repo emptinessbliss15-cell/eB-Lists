@@ -21,21 +21,45 @@ async function refreshLists() {
     const li = document.createElement('li');
     const row = document.createElement('div');
     row.className = 'eb-list-row';
+
     const open = document.createElement('button');
     open.className = 'secondary eb-list-open';
     open.type = 'button';
     open.textContent = `${list.name} ${list.ordered ? '· ordered' : '· unordered'}`;
     open.onclick = () => openList(list);
+
+    const rename = document.createElement('button');
+    rename.className = 'secondary eb-list-action';
+    rename.type = 'button';
+    rename.textContent = '✎';
+    rename.title = 'Rename list';
+    rename.onclick = (event) => { event.stopPropagation(); renameList(list); };
+
     const del = document.createElement('button');
-    del.className = 'secondary eb-list-delete';
+    del.className = 'secondary eb-list-action';
     del.type = 'button';
     del.textContent = '×';
     del.title = 'Delete list';
     del.onclick = (event) => { event.stopPropagation(); deleteList(list); };
-    row.append(open, del);
+
+    row.append(open, rename, del);
     li.appendChild(row);
     lists.appendChild(li);
   });
+}
+
+async function renameList(list) {
+  const name = prompt('Rename list:', list.name);
+  if (name === null) return;
+  const newName = name.trim();
+  if (!newName || newName === list.name) return;
+  const result = await supabaseClient.from('lists').update({ name: newName }).eq('id', list.id);
+  if (result.error) return setStatus(result.error.message);
+  if (activeList?.id === list.id) {
+    activeList = { ...activeList, name: newName };
+    document.getElementById('activeList').textContent = newName;
+  }
+  await refreshLists();
 }
 
 async function openList(list) {
