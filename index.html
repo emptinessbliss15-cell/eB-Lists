@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>eB Lists</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>body{margin:0;font-family:system-ui}input,button,select{font:inherit;padding:6px;margin:3px}button{cursor:pointer}.card{border:1px solid #8886;border-radius:8px;padding:12px;margin:12px}.muted{opacity:.7}.eb-row{display:flex;align-items:center;gap:8px}.eb-main ul{padding-left:20px}</style>
+<style>body{margin:0;font-family:system-ui}input,button,select{font:inherit;padding:6px;margin:3px}button{cursor:pointer}.card{border:1px solid #8886;border-radius:8px;padding:12px;margin:12px}.muted{opacity:.7}.eb-row{display:flex;align-items:center;gap:8px}.eb-main ul{padding-left:20px}.ordered-items{list-style-type:decimal}</style>
 </head>
 <body>
 <div id="shell" class="eb-shell">
@@ -24,10 +24,11 @@
       <section id="app" class="card" hidden>
         <div><strong id="user"></strong> <button id="signOut">Sign out</button></div>
         <h2>Lists</h2>
-        <input id="listName" placeholder="New list name"><button id="newList">Create list</button>
+        <div><input id="listName" placeholder="New list name"><label><input id="listOrdered" type="checkbox"> Ordered</label><button id="newList">Create list</button></div>
         <ul id="lists"></ul>
         <div id="listView" hidden>
           <h2 id="activeList"></h2>
+          <div class="muted" id="listMode"></div>
           <input id="item" placeholder="Add an item"><button id="newItem">Add</button>
           <ul id="items"></ul>
           <p class="muted">Click an item to toggle complete.</p>
