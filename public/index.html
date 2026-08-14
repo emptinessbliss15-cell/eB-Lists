@@ -19,6 +19,7 @@
   .eb-row input { min-width: 120px; }
   button, input { padding: 4px 7px; }
   .eb-spread { gap: 3px; }
+  .eb-header-actions { display: flex; align-items: center; gap: 6px; }
 
   /* Lists live in the second navigation column. */
   .eb-tree { padding: 8px 6px; overflow: auto; }
@@ -38,7 +39,10 @@
   <header class="eb-header">
     <div class="eb-header-inner">
       <a class="eb-brand" href="/">eBliss</a>
-      <span class="eb-app-name">Lists</span>
+      <div class="eb-header-actions">
+        <span class="eb-app-name">Lists</span>
+        <button id="signOut" class="secondary" type="button" hidden>Sign out</button>
+      </div>
     </div>
   </header>
   <div class="eb-navigation">
@@ -70,7 +74,6 @@
           </div>
         </section>
         <section id="app" class="eb-card" hidden>
-          <div class="eb-spread"><strong id="user"></strong><button id="signOut" class="secondary">Sign out</button></div>
           <div id="listView" hidden>
             <div class="eb-spread">
               <h2 id="activeList"></h2>
