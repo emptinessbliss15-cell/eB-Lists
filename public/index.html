@@ -5,8 +5,23 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>eB Lists</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root[data-density="compact"] { --eb-space: 3px; }
+  .eb-content { max-width: 900px; }
+  .eb-card { padding: 8px; margin: 5px 0; }
+  .eb-card h2 { font-size: 1rem; }
+  .eb-list { margin: 3px 0; padding-left: 20px; }
+  .eb-list li { margin: 1px 0; }
+  .eb-item-row { gap: 3px; }
+  .eb-item-text { flex: 1; min-width: 0; text-align: left; }
+  .eb-item-controls { display: inline-flex; gap: 2px; flex: 0 0 auto; }
+  .eb-order-button { min-width: 30px; padding: 3px 6px; }
+  .eb-row input { min-width: 120px; }
+  button, input { padding: 4px 7px; }
+  .eb-spread { gap: 3px; }
+</style>
 </head>
-<body>
+<body data-density="compact">
 <div id="shell" class="eb-shell">
   <header class="eb-header">
     <div class="eb-header-inner">
