@@ -7,61 +7,55 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<main>
-<h1>eB Lists</h1>
-<p>eBliss shared identity and data foundation.</p>
-<section id="auth">
-<input id="email" type="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
-<button id="signup">Create account</button>
-<button id="signin">Sign in</button>
-</section>
-<p id="status">Connecting…</p>
-<section id="app" hidden>
-<input id="listName" placeholder="New list name">
-<button id="createList">Create list</button>
-<div id="lists"></div>
-</section>
-</main>
-<script>
-const SUPABASE_URL='https://zaabghrczrbqkxrhkinj.supabase.co';
-const SUPABASE_KEY='sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF';
-const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const $=id=>document.getElementById(id);
-function status(text){$('status').textContent=text;}
-async function refresh(){
- const {data:{session}}=await client.auth.getSession();
- $('app').hidden=!session;
- $('auth').hidden=!!session;
- if(!session){status('Connected — ready for sign in.');return;}
- status('Connected — signed in.');
- const {data,error}=await client.from('lists').select('id,name,created_at').order('created_at');
- if(error){status(error.message);return;}
- $('lists').innerHTML='';
- for(const row of data){
-  const div=document.createElement('div');
-  div.innerHTML='<h3></h3><input placeholder="Add an item"><button>Add</button><ul></ul>';
-  div.querySelector('h3').textContent=row.name;
-  const input=div.querySelector('input'),button=div.querySelector('button'),ul=div.querySelector('ul');
-  async function loadItems(){
-   const {data:items}=await client.from('list_items').select('id,text,completed').eq('list_id',row.id).order('position');
-   ul.innerHTML='';
-   for(const item of items||[]){
-    const li=document.createElement('li');
-    const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=item.completed;
-    cb.onchange=async()=>{await client.from('list_items').update({completed:cb.checked}).eq('id',item.id);};
-    li.append(cb,document.createTextNode(' '+item.text)); ul.appendChild(li);
-   }
-  }
-  button.onclick=async()=>{const text=input.value.trim();if(!text)return;const {count}=await client.from('list_items').select('id',{count:'exact',head:true}).eq('list_id',row.id);await client.from('list_items').insert({list_id:row.id,owner_id:session.user.id,text,position:count||0});input.value='';loadItems();};
-  $('lists').appendChild(div);loadItems();
- }
-}
-$('createList').onclick=async()=>{const name=$('listName').value.trim();if(!name)return;const {error}=await client.from('lists').insert({name,owner_id:(await client.auth.getUser()).data.user.id});if(error)status(error.message);else{$('listName').value='';refresh();}};
-$('signup').onclick=async()=>{const {error}=await client.auth.signUp({email:$('email').value,password:$('password').value});status(error?error.message:'Account created — check your email if confirmation is required.');};
-$('signin').onclick=async()=>{const {error}=await client.auth.signInWithPassword({email:$('email').value,password:$('password').value});status(error?error.message:'Signed in.');if(!error)refresh();};
-client.auth.onAuthStateChange(()=>refresh());
-refresh();
+<div id="shell" class="eb-shell">
+  <header class="eb-header"></header>
+  <div class="eb-navigation">
+    <nav id="appRail" aria-label="Applications"></nav>
+    <nav id="tree" aria-label="Context"></nav>
+    <main class="eb-main">
+      <div class="eb-subheader"></div>
+      <section id="auth" class="eb-card">
+        <h2>Sign in</h2>
+        <div class="eb-row">
+          <input id="email" type="email" placeholder="Email" autocomplete="email">
+          <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+        </div>
+        <div class="eb-row">
+          <button id="signIn">Sign in</button>
+          <button id="signUp" class="secondary">Create account</button>
+        </div>
+      </section>
+      <section id="app" class="eb-card" hidden>
+        <div class="eb-spread"><strong id="user"></strong><button id="signOut" class="secondary">Sign out</button></div>
+        <h2>Lists</h2>
+        <div class="eb-row">
+          <input id="listName" placeholder="New list name">
+          <label><input id="listOrdered" type="checkbox"> Ordered</label>
+          <button id="newList">Create list</button>
+        </div>
+        <ul id="lists" class="eb-list"></ul>
+        <div id="listView" hidden>
+          <div class="eb-spread">
+            <h2 id="activeList"></h2>
+            <button id="deleteList" class="secondary" type="button">Delete list</button>
+          </div>
+          <div class="eb-muted" id="listMode"></div>
+          <div class="eb-row">
+            <input id="item" placeholder="Add an item">
+            <button id="newItem">Add</button>
+          </div>
+          <ul id="items" class="eb-list"></ul>
+          <p class="eb-muted">Click an item to toggle complete.</p>
+        </div>
+      </section>
+      <p id="status" class="eb-muted"></p>
+    </main>
+  </div>
+</div>
+<script type="module">
+  import { loadEBlissTheme } from './theme-loader.js';
+  try { await loadEBlissTheme(); } catch (error) { console.error(error); }
 </script>
+<script src="./app.js"></script>
 </body>
 </html>
