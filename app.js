@@ -23,9 +23,51 @@ async function refreshLists() {
   });
 }
 
+async function renameActiveList() {
+  if (!activeList) return;
+  const input = document.getElementById('activeListEdit');
+  const name = input.value.trim();
+  if (!name) return;
+  const result = await supabase.from('lists').update({ name }).eq('id', activeList.id).eq('owner_id', user.id);
+  if (result.error) return setStatus(result.error.message);
+  activeList.name = name;
+  showActiveListName();
+  await refreshLists();
+  setStatus('');
+}
+
+function showActiveListName() {
+  const title = document.getElementById('activeList');
+  title.innerHTML = '';
+  const name = document.createElement('span');
+  name.textContent = activeList.name;
+  name.title = 'Click to rename';
+  name.className = 'editable-list-name';
+  name.onclick = beginRename;
+  title.appendChild(name);
+}
+
+function beginRename() {
+  if (!activeList || document.getElementById('activeListEdit')) return;
+  const title = document.getElementById('activeList');
+  title.innerHTML = '';
+  const input = document.createElement('input');
+  input.id = 'activeListEdit';
+  input.value = activeList.name;
+  input.setAttribute('aria-label', 'List name');
+  title.appendChild(input);
+  input.focus();
+  input.select();
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter') renameActiveList();
+    if (event.key === 'Escape') showActiveListName();
+  });
+  input.addEventListener('blur', () => renameActiveList());
+}
+
 async function openList(list) {
   activeList = list;
-  document.getElementById('activeList').textContent = list.name;
+  showActiveListName();
   document.getElementById('listMode').textContent = list.ordered ? 'Ordered' : 'Unordered';
   items.classList.toggle('ordered-items', !!list.ordered);
   document.getElementById('listView').hidden = false;
