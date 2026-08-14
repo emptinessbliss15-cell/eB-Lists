@@ -1,4 +1,4 @@
-const supabase = window.supabase.createClient('https://zaabghrczrbqkxrhkinj.supabase.co', 'sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF');
+const supabaseClient = window.supabase.createClient('https://zaabghrczrbqkxrhkinj.supabase.co', 'sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF');
 const status = document.getElementById('status');
 const app = document.getElementById('app');
 const auth = document.getElementById('auth');
@@ -12,7 +12,7 @@ let activeList = null;
 function setStatus(text) { status.textContent = text || ''; }
 
 async function refreshLists() {
-  const { data, error } = await supabase.from('lists').select('*').order('created_at');
+  const { data, error } = await supabaseClient.from('lists').select('*').order('created_at');
   if (error) return setStatus(error.message);
   lists.innerHTML = '';
   data.forEach(list => {
@@ -46,7 +46,7 @@ async function openList(list) {
 
 async function refreshItems() {
   if (!activeList) return;
-  const { data, error } = await supabase.from('list_items').select('*').eq('list_id', activeList.id).order('position').order('created_at');
+  const { data, error } = await supabaseClient.from('list_items').select('*').eq('list_id', activeList.id).order('position').order('created_at');
   if (error) return setStatus(error.message);
   items.innerHTML = '';
   data.forEach(item => {
@@ -58,7 +58,7 @@ async function refreshItems() {
     toggle.type = 'button';
     toggle.textContent = item.completed ? '✓ ' + item.text : item.text;
     toggle.onclick = async () => {
-      const result = await supabase.from('list_items').update({ completed: !item.completed }).eq('id', item.id);
+      const result = await supabaseClient.from('list_items').update({ completed: !item.completed }).eq('id', item.id);
       if (result.error) setStatus(result.error.message); else refreshItems();
     };
     const del = document.createElement('button');
@@ -67,7 +67,7 @@ async function refreshItems() {
     del.textContent = 'Delete';
     del.onclick = async (event) => {
       event.stopPropagation();
-      const result = await supabase.from('list_items').delete().eq('id', item.id);
+      const result = await supabaseClient.from('list_items').delete().eq('id', item.id);
       if (result.error) setStatus(result.error.message); else refreshItems();
     };
     row.append(toggle, del);
@@ -78,7 +78,7 @@ async function refreshItems() {
 
 async function deleteList(list) {
   if (!confirm(`Delete list "${list.name}" and its items?`)) return;
-  const result = await supabase.from('lists').delete().eq('id', list.id);
+  const result = await supabaseClient.from('lists').delete().eq('id', list.id);
   if (result.error) return setStatus(result.error.message);
   if (activeList?.id === list.id) {
     activeList = null;
@@ -96,21 +96,21 @@ async function applySession(session) {
 }
 
 document.getElementById('signIn').onclick = async () => {
-  const result = await supabase.auth.signInWithPassword({ email: email.value.trim(), password: password.value });
+  const result = await supabaseClient.auth.signInWithPassword({ email: email.value.trim(), password: password.value });
   if (result.error) return setStatus(result.error.message);
   setStatus('');
   await applySession(result.data.session);
 };
 
 document.getElementById('signUp').onclick = async () => {
-  const result = await supabase.auth.signUp({ email: email.value.trim(), password: password.value });
+  const result = await supabaseClient.auth.signUp({ email: email.value.trim(), password: password.value });
   if (result.error) return setStatus(result.error.message);
   if (result.data.session) await applySession(result.data.session);
   else setStatus('Account created. Check your email if confirmation is required.');
 };
 
 document.getElementById('signOut').onclick = async () => {
-  await supabase.auth.signOut({ scope: 'local' });
+  await supabaseClient.auth.signOut({ scope: 'local' });
   activeList = null;
   document.getElementById('listView').hidden = true;
   await applySession(null);
@@ -121,7 +121,7 @@ document.getElementById('newList').onclick = async () => {
   const name = input.value.trim();
   if (!name) return;
   const ordered = document.getElementById('listOrdered').checked;
-  const result = await supabase.from('lists').insert({ name, owner_id: user.id, ordered });
+  const result = await supabaseClient.from('lists').insert({ name, owner_id: user.id, ordered });
   if (result.error) return setStatus(result.error.message);
   input.value = '';
   document.getElementById('listOrdered').checked = false;
@@ -132,10 +132,10 @@ document.getElementById('newItem').onclick = async () => {
   const input = document.getElementById('item');
   const text = input.value.trim();
   if (!text || !activeList) return;
-  const latest = await supabase.from('list_items').select('position').eq('list_id', activeList.id).order('position', { ascending: false }).limit(1);
+  const latest = await supabaseClient.from('list_items').select('position').eq('list_id', activeList.id).order('position', { ascending: false }).limit(1);
   if (latest.error) return setStatus(latest.error.message);
   const position = (latest.data?.[0]?.position ?? -1) + 1;
-  const result = await supabase.from('list_items').insert({ list_id: activeList.id, owner_id: user.id, text, position });
+  const result = await supabaseClient.from('list_items').insert({ list_id: activeList.id, owner_id: user.id, text, position });
   if (result.error) return setStatus(result.error.message);
   input.value = '';
   await refreshItems();
@@ -143,5 +143,5 @@ document.getElementById('newItem').onclick = async () => {
 
 document.getElementById('deleteList').onclick = () => { if (activeList) deleteList(activeList); };
 
-supabase.auth.onAuthStateChange((_event, session) => applySession(session));
-supabase.auth.getSession().then(({ data }) => applySession(data.session));
+supabaseClient.auth.onAuthStateChange((_event, session) => applySession(session));
+supabaseClient.auth.getSession().then(({ data }) => applySession(data.session));
