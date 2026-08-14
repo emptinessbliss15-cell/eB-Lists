@@ -2,6 +2,7 @@ const supabaseClient = window.supabase.createClient('https://zaabghrczrbqkxrhkin
 const status = document.getElementById('status');
 const app = document.getElementById('app');
 const auth = document.getElementById('auth');
+const tree = document.getElementById('tree');
 const email = document.getElementById('email');
 const password = document.getElementById('password');
 const lists = document.getElementById('lists');
@@ -18,16 +19,17 @@ async function refreshLists() {
   data.forEach(list => {
     const li = document.createElement('li');
     const row = document.createElement('div');
-    row.className = 'eb-spread';
+    row.className = 'eb-list-row';
     const open = document.createElement('button');
-    open.className = 'secondary';
+    open.className = 'secondary eb-list-open';
     open.type = 'button';
     open.textContent = `${list.name} ${list.ordered ? '· ordered' : '· unordered'}`;
     open.onclick = () => openList(list);
     const del = document.createElement('button');
-    del.className = 'secondary';
+    del.className = 'secondary eb-list-delete';
     del.type = 'button';
-    del.textContent = 'Delete';
+    del.textContent = '×';
+    del.title = 'Delete list';
     del.onclick = (event) => { event.stopPropagation(); deleteList(list); };
     row.append(open, del);
     li.appendChild(row);
@@ -131,6 +133,7 @@ async function applySession(session) {
   user = session?.user || null;
   auth.hidden = !!user;
   app.hidden = !user;
+  tree.hidden = !user;
   document.getElementById('user').textContent = user?.email || '';
   if (user) await refreshLists();
 }
