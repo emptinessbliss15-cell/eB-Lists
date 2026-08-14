@@ -5,30 +5,42 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>eB Lists</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>body{font-family:system-ui;max-width:760px;margin:40px auto;padding:0 20px}input,button{font:inherit;padding:9px;margin:4px}button{cursor:pointer}.card{border:1px solid #8886;border-radius:12px;padding:18px;margin:16px 0}li{margin:9px 0;cursor:pointer}.muted{opacity:.7}</style>
+<style>body{margin:0;font-family:system-ui}input,button,select{font:inherit;padding:6px;margin:3px}button{cursor:pointer}.card{border:1px solid #8886;border-radius:8px;padding:12px;margin:12px}.muted{opacity:.7}.eb-row{display:flex;align-items:center;gap:8px}.eb-main ul{padding-left:20px}</style>
 </head>
 <body>
-<h1>eB Lists</h1>
-<p class="muted">One eBliss identity → many apps.</p>
-<section id="auth" class="card">
-<h2>Sign in</h2>
-<input id="email" type="email" placeholder="Email" autocomplete="email">
-<input id="password" type="password" placeholder="Password" autocomplete="current-password">
-<div><button id="signIn">Sign in</button><button id="signUp">Create account</button></div>
-</section>
-<section id="app" class="card" hidden>
-<div><strong id="user"></strong> <button id="signOut">Sign out</button></div>
-<h2>Lists</h2>
-<input id="listName" placeholder="New list name"><button id="newList">Create list</button>
-<ul id="lists"></ul>
-<div id="listView" hidden>
-<h2 id="activeList"></h2>
-<input id="item" placeholder="Add an item"><button id="newItem">Add</button>
-<ul id="items"></ul>
-<p class="muted">Click an item to toggle complete.</p>
+<div id="shell" class="eb-shell">
+  <header id="header" class="eb-header"></header>
+  <div class="eb-navigation">
+    <nav id="appRail" aria-label="Applications"></nav>
+    <nav id="tree" aria-label="Context"></nav>
+    <main class="eb-main">
+      <div id="subheader" class="eb-subheader" style="margin:-20px -20px 20px"></div>
+      <section id="auth" class="card">
+        <h2>Sign in</h2>
+        <input id="email" type="email" placeholder="Email" autocomplete="email">
+        <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+        <div><button id="signIn">Sign in</button><button id="signUp">Create account</button></div>
+      </section>
+      <section id="app" class="card" hidden>
+        <div><strong id="user"></strong> <button id="signOut">Sign out</button></div>
+        <h2>Lists</h2>
+        <input id="listName" placeholder="New list name"><button id="newList">Create list</button>
+        <ul id="lists"></ul>
+        <div id="listView" hidden>
+          <h2 id="activeList"></h2>
+          <input id="item" placeholder="Add an item"><button id="newItem">Add</button>
+          <ul id="items"></ul>
+          <p class="muted">Click an item to toggle complete.</p>
+        </div>
+      </section>
+      <p id="status" class="muted"></p>
+    </main>
+  </div>
 </div>
-</section>
-<p id="status" class="muted"></p>
+<script type="module">
+  import { loadEBlissTheme } from './theme-loader.js';
+  await loadEBlissTheme();
+</script>
 <script src="./app.js"></script>
 </body>
 </html>
