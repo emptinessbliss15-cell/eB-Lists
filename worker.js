@@ -65,6 +65,19 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    if (url.pathname === '/__build') {
+      const metadata = env.CF_VERSION_METADATA;
+      return Response.json({
+        service: 'eB-Lists',
+        status: 'deployed',
+        version: metadata?.id || null,
+        tag: metadata?.tag || null,
+        timestamp: metadata?.timestamp || null,
+      }, {
+        headers: { 'cache-control': 'no-store' },
+      });
+    }
+
     if (url.pathname.startsWith('/api/')) {
       return handleApi(request, createSupabase(env, request));
     }
