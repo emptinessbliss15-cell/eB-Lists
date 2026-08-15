@@ -5,7 +5,7 @@
   const auth = document.getElementById('auth');
   const email = document.getElementById('email');
   const password = document.getElementById('password');
-  const lists = document.getElementById('lists');
+  const tree = document.getElementById('tree');
   const items = document.getElementById('items');
   let user = null;
   let activeList = null;
@@ -15,12 +15,15 @@
   async function refreshLists() {
     const { data, error } = await supabase.from('lists').select('*').order('created_at');
     if (error) return setStatus(error.message);
-    lists.innerHTML = '';
+    tree.innerHTML = '';
     data.forEach(list => {
-      const li = document.createElement('li');
-      li.textContent = `${list.name} ${list.ordered ? '· ordered' : '· unordered'}`;
-      li.onclick = () => openList(list);
-      lists.appendChild(li);
+      const node = document.createElement('button');
+      node.type = 'button';
+      node.className = 'eb-tree-node';
+      node.textContent = `${list.name} ${list.ordered ? '· ordered' : '· unordered'}`;
+      node.setAttribute('aria-current', activeList?.id === list.id ? 'true' : 'false');
+      node.onclick = () => openList(list);
+      tree.appendChild(node);
     });
   }
 
@@ -72,10 +75,12 @@
     document.getElementById('listMode').textContent = list.ordered ? 'Ordered' : 'Unordered';
     items.classList.toggle('ordered-items', !!list.ordered);
     document.getElementById('listView').hidden = false;
+    await refreshLists();
     await refreshItems();
   }
 
   async function refreshItems() {
+    if (!activeList) return;
     const { data, error } = await supabase.from('list_items').select('*').eq('list_id', activeList.id).order('position').order('created_at');
     if (error) return setStatus(error.message);
     items.innerHTML = '';
