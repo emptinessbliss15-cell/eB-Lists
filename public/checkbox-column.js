@@ -1,3 +1,5 @@
+import './build-status.js';
+
 const items = document.getElementById('items');
 
 function addCheckbox(row) {
