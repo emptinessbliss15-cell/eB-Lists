@@ -1,105 +1,17 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>eB Lists</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>eB Lists</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root[data-density="compact"] { --eb-space: 3px; }
-  .eb-content { max-width: none; }
-  .eb-card { padding: 8px; margin: 5px 0; }
-  .eb-card h2 { font-size: 1rem; }
-  .eb-list { margin: 3px 0; padding-left: 20px; }
-  .eb-list li { margin: 1px 0; }
-  .eb-item-row { gap: 3px; }
-  .eb-item-text { flex: 1; min-width: 0; text-align: left; }
-  .eb-item-controls { display: inline-flex; gap: 2px; flex: 0 0 auto; }
-  .eb-order-button { min-width: 30px; padding: 3px 6px; }
-  .eb-row input { min-width: 120px; }
-  button, input, select { padding: 4px 7px; }
-  .eb-spread { gap: 3px; }
-  .eb-header-actions { display: flex; align-items: center; gap: 6px; }
-  .eb-tree { padding: 8px 6px; overflow: auto; }
-  .eb-list-nav-title { font-weight: 700; font-size: 13px; margin-bottom: 6px; }
-  .eb-list-create { display: grid; gap: 4px; margin-bottom: 8px; }
-  .eb-list-create input[type="text"] { width: 100%; min-width: 0; }
-  .eb-list-create label { font-size: 12px; }
-  .eb-list-nav { list-style: none; padding: 0; margin: 0; }
-  .eb-list-nav li { margin: 1px 0; }
-  .eb-list-nav .eb-list-row { display: flex; gap: 2px; align-items: center; }
-  .eb-list-nav .eb-list-open { flex: 1; min-width: 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .eb-list-nav .eb-list-action { flex: 0 0 auto; padding: 3px 5px; }
-  .eb-new-item { display: grid; grid-template-columns: auto minmax(160px, 1fr) auto; gap: 3px; align-items: center; }
-  .eb-new-item-fields { display: contents; }
-  .eb-new-item-fields label { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
-  .eb-new-item-fields input, .eb-new-item-fields select { min-width: 100px; }
-  .eb-template-label { font-size: 11px; }
+:root[data-density="compact"]{--eb-space:3px}.eb-content{max-width:none}.eb-card{padding:8px;margin:5px 0}.eb-card h2{font-size:1rem}.eb-list{margin:3px 0;padding-left:20px}.eb-list li{margin:1px 0}.eb-item-row{gap:3px}.eb-item-text{flex:1;min-width:0;text-align:left}.eb-item-controls{display:inline-flex;gap:2px;flex:0 0 auto}.eb-order-button{min-width:30px;padding:3px 6px}.eb-row input{min-width:120px}button,input,select{padding:4px 7px}.eb-spread{gap:3px}.eb-header-actions{display:flex;align-items:center;gap:6px}.eb-tree{padding:8px 6px;overflow:auto}.eb-list-nav-title{font-weight:700;font-size:13px;margin-bottom:6px}.eb-list-create{display:grid;gap:4px;margin-bottom:8px}.eb-list-create input[type=text]{width:100%;min-width:0}.eb-list-create label{font-size:12px}.eb-list-nav{list-style:none;padding:0;margin:0}.eb-list-nav li{margin:1px 0}.eb-list-nav .eb-list-row{display:flex;gap:2px;align-items:center}.eb-list-nav .eb-list-open{flex:1;min-width:0;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.eb-list-nav .eb-list-action{flex:0 0 auto;padding:3px 5px}.eb-new-item{display:grid;grid-template-columns:auto minmax(150px,1fr) minmax(150px,1fr) auto;gap:3px;align-items:center}.eb-new-item-fields{display:contents}.eb-new-item-fields label{display:inline-flex;align-items:center;gap:4px;font-size:12px}.eb-new-item-fields input,.eb-new-item-fields select{min-width:100px}.eb-template-label{font-size:11px}
 </style>
 </head>
 <body data-density="compact">
-<div id="shell" class="eb-shell">
-  <header class="eb-header">
-    <div class="eb-header-inner">
-      <a class="eb-brand" href="/">eBliss</a>
-      <div class="eb-header-actions">
-        <span class="eb-app-name">Lists</span>
-        <button id="signOut" class="secondary" type="button" hidden>Sign out</button>
-      </div>
-    </div>
-  </header>
-  <div class="eb-navigation">
-    <nav id="appRail" class="eb-app-rail" aria-label="Applications"></nav>
-    <nav id="tree" class="eb-tree" aria-label="Lists" hidden>
-      <div class="eb-list-nav-title">Lists</div>
-      <div class="eb-list-create">
-        <input id="listName" type="text" placeholder="New list name">
-        <label><input id="listOrdered" type="checkbox"> Ordered</label>
-        <button id="newList" type="button">Create list</button>
-      </div>
-      <ul id="lists" class="eb-list-nav"></ul>
-    </nav>
-    <main class="eb-main">
-      <div class="eb-content">
-        <div class="eb-subheader"><div class="eb-subheader-inner"><strong>Lists</strong><span class="eb-muted">Dense view</span></div></div>
-        <section id="auth" class="eb-card">
-          <h2>Sign in</h2>
-          <div class="eb-row">
-            <input id="email" type="email" placeholder="Email" autocomplete="email">
-            <input id="password" type="password" placeholder="Password" autocomplete="current-password">
-            <button id="signIn">Sign in</button><button id="signUp" class="secondary">Create account</button>
-          </div>
-        </section>
-        <section id="app" class="eb-card" hidden>
-          <div id="listView" hidden>
-            <div class="eb-spread"><h2 id="activeList"></h2><button id="deleteList" class="secondary" type="button">Delete list</button></div>
-            <div class="eb-muted" id="listMode"></div>
-            <div class="eb-row eb-new-item">
-              <label class="eb-template-label" for="itemTemplate">Type</label>
-              <select id="itemTemplate" aria-label="Item template"></select>
-              <div id="newItemFields" class="eb-new-item-fields"></div>
-              <button id="newItem" type="button">Add</button>
-            </div>
-            <ul id="items" class="eb-list"></ul>
-          </div>
-        </section>
-        <p id="status" class="eb-muted"></p>
-      </div>
-      <section class="eb-agent" aria-label="Agent chat">
-        <div class="eb-agent-label">Agent</div>
-        <div class="eb-agent-row"><input id="agentInput" placeholder="Ask about your lists…" aria-label="Ask the eBliss agent"><button id="agentSend" type="button">Send</button></div>
-      </section>
-    </main>
-  </div>
-</div>
-<script type="module">
-  import { loadEBlissTheme } from './theme-loader.js';
-  try { await loadEBlissTheme(); } catch (error) { console.error(error); }
-</script>
-<script type="module">
-  import { createHolabase } from './holabase.js';
-  window.createHolabase = createHolabase;
-</script>
-<script src="./app.js"></script>
-</body>
-</html>
+<div id="shell" class="eb-shell"><header class="eb-header"><div class="eb-header-inner"><a class="eb-brand" href="/">eBliss</a><div class="eb-header-actions"><span class="eb-app-name">Lists</span><button id="signOut" class="secondary" type="button" hidden>Sign out</button></div></div></header>
+<div class="eb-navigation"><nav id="appRail" class="eb-app-rail" aria-label="Applications"></nav><nav id="tree" class="eb-tree" aria-label="Lists" hidden><div class="eb-list-nav-title">Lists</div><div class="eb-list-create"><input id="listName" type="text" placeholder="New list name"><label><input id="listOrdered" type="checkbox"> Ordered</label><button id="newList" type="button">Create list</button></div><ul id="lists" class="eb-list-nav"></ul></nav>
+<main class="eb-main"><div class="eb-content"><div class="eb-subheader"><div class="eb-subheader-inner"><strong>Lists</strong><span class="eb-muted">Dense view</span></div></div><section id="auth" class="eb-card"><h2>Sign in</h2><div class="eb-row"><input id="email" type="email" placeholder="Email" autocomplete="email"><input id="password" type="password" placeholder="Password" autocomplete="current-password"><button id="signIn">Sign in</button><button id="signUp" class="secondary">Create account</button></div></section>
+<section id="app" class="eb-card" hidden><div id="listView" hidden><div class="eb-spread"><h2 id="activeList"></h2><button id="deleteList" class="secondary" type="button">Delete list</button></div><div class="eb-muted" id="listMode"></div><div class="eb-row eb-new-item"><label class="eb-template-label" for="itemTemplate">Type</label><select id="itemTemplate" aria-label="Item template"></select><div id="newItemFields" class="eb-new-item-fields"></div><button id="newItem" type="button">Add</button></div><ul id="items" class="eb-list"></ul></div></section><p id="status" class="eb-muted"></p></div>
+<section class="eb-agent" aria-label="Agent chat"><div class="eb-agent-label">Agent</div><div class="eb-agent-row"><input id="agentInput" placeholder="Ask about your lists…" aria-label="Ask the eBliss agent"><button id="agentSend" type="button">Send</button></div></section></main></div></div>
+<script type="module">import {loadEBlissTheme} from './theme-loader.js';try{await loadEBlissTheme()}catch(error){console.error(error)}</script><script type="module" src="./app.js"></script>
+</body></html>
