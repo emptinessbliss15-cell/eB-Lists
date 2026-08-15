@@ -3,7 +3,7 @@ export function createHolabase(client) {
     async getTemplates(ownerId) {
       const { data, error } = await client
         .from('templates')
-        .select('*, template_fields(*), template_children(*)')
+        .select('*, template_fields(*)')
         .eq('owner_id', ownerId)
         .order('name');
       if (error) throw error;
