@@ -53,13 +53,15 @@ async function renameList(list) {
   if (name === null) return;
   const newName = name.trim();
   if (!newName || newName === list.name) return;
-  const result = await supabaseClient.from('lists').update({ name: newName }).eq('id', list.id);
-  if (result.error) return setStatus(result.error.message);
+  const result = await supabaseClient.from('lists').update({ name: newName }).eq('id', list.id).eq('owner_id', user.id).select().single();
+  if (result.error) return setStatus(`Rename failed: ${result.error.message}`);
+  if (!result.data) return setStatus('Rename failed: no list was updated.');
   if (activeList?.id === list.id) {
-    activeList = { ...activeList, name: newName };
-    document.getElementById('activeList').textContent = newName;
+    activeList = { ...activeList, name: result.data.name };
+    document.getElementById('activeList').textContent = result.data.name;
   }
   await refreshLists();
+  setStatus('List renamed.');
 }
 
 async function openList(list) {
@@ -80,64 +82,26 @@ async function refreshItems() {
     const li = document.createElement('li');
     const row = document.createElement('div');
     row.className = 'eb-spread eb-item-row';
-
     const toggle = document.createElement('button');
-    toggle.className = 'secondary eb-item-text';
-    toggle.type = 'button';
+    toggle.className = 'secondary eb-item-text'; toggle.type = 'button';
     toggle.textContent = item.completed ? '✓ ' + item.text : item.text;
-    toggle.onclick = async () => {
-      const result = await supabaseClient.from('list_items').update({ completed: !item.completed }).eq('id', item.id);
-      if (result.error) setStatus(result.error.message); else refreshItems();
-    };
-
-    const controls = document.createElement('span');
-    controls.className = 'eb-item-controls';
-
+    toggle.onclick = async () => { const result = await supabaseClient.from('list_items').update({ completed: !item.completed }).eq('id', item.id); if (result.error) setStatus(result.error.message); else refreshItems(); };
+    const controls = document.createElement('span'); controls.className = 'eb-item-controls';
     if (activeList.ordered) {
-      const up = document.createElement('button');
-      up.className = 'secondary eb-order-button';
-      up.type = 'button';
-      up.textContent = '↑';
-      up.title = 'Move up';
-      up.disabled = index === 0;
-      up.onclick = (event) => { event.stopPropagation(); moveItem(data, index, -1); };
-
-      const down = document.createElement('button');
-      down.className = 'secondary eb-order-button';
-      down.type = 'button';
-      down.textContent = '↓';
-      down.title = 'Move down';
-      down.disabled = index === data.length - 1;
-      down.onclick = (event) => { event.stopPropagation(); moveItem(data, index, 1); };
+      const up = document.createElement('button'); up.className = 'secondary eb-order-button'; up.type = 'button'; up.textContent = '↑'; up.title = 'Move up'; up.disabled = index === 0; up.onclick = (event) => { event.stopPropagation(); moveItem(data, index, -1); };
+      const down = document.createElement('button'); down.className = 'secondary eb-order-button'; down.type = 'button'; down.textContent = '↓'; down.title = 'Move down'; down.disabled = index === data.length - 1; down.onclick = (event) => { event.stopPropagation(); moveItem(data, index, 1); };
       controls.append(up, down);
     }
-
-    const del = document.createElement('button');
-    del.className = 'secondary eb-order-button';
-    del.type = 'button';
-    del.textContent = '×';
-    del.title = 'Delete item';
-    del.onclick = async (event) => {
-      event.stopPropagation();
-      const result = await supabaseClient.from('list_items').delete().eq('id', item.id);
-      if (result.error) setStatus(result.error.message); else refreshItems();
-    };
-    controls.appendChild(del);
-
-    row.append(toggle, controls);
-    li.appendChild(row);
-    items.appendChild(li);
+    const del = document.createElement('button'); del.className = 'secondary eb-order-button'; del.type = 'button'; del.textContent = '×'; del.title = 'Delete item'; del.onclick = async (event) => { event.stopPropagation(); const result = await supabaseClient.from('list_items').delete().eq('id', item.id); if (result.error) setStatus(result.error.message); else refreshItems(); };
+    controls.appendChild(del); row.append(toggle, controls); li.appendChild(row); items.appendChild(li);
   });
 }
 
 async function moveItem(data, index, direction) {
   const targetIndex = index + direction;
   if (!activeList?.ordered || targetIndex < 0 || targetIndex >= data.length) return;
-  const reordered = [...data];
-  [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
-  const results = await Promise.all(
-    reordered.map((item, position) => supabaseClient.from('list_items').update({ position }).eq('id', item.id))
-  );
+  const reordered = [...data]; [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+  const results = await Promise.all(reordered.map((item, position) => supabaseClient.from('list_items').update({ position }).eq('id', item.id)));
   const error = results.find(result => result.error)?.error;
   if (error) return setStatus(error.message);
   await refreshItems();
@@ -147,69 +111,20 @@ async function deleteList(list) {
   if (!confirm(`Delete list "${list.name}" and its items?`)) return;
   const result = await supabaseClient.from('lists').delete().eq('id', list.id);
   if (result.error) return setStatus(result.error.message);
-  if (activeList?.id === list.id) {
-    activeList = null;
-    document.getElementById('listView').hidden = true;
-  }
+  if (activeList?.id === list.id) { activeList = null; document.getElementById('listView').hidden = true; }
   await refreshLists();
 }
 
 async function applySession(session) {
-  user = session?.user || null;
-  auth.hidden = !!user;
-  app.hidden = !user;
-  tree.hidden = !user;
-  signOut.hidden = !user;
+  user = session?.user || null; auth.hidden = !!user; app.hidden = !user; tree.hidden = !user; signOut.hidden = !user;
   if (user) await refreshLists();
 }
 
-document.getElementById('signIn').onclick = async () => {
-  const result = await supabaseClient.auth.signInWithPassword({ email: email.value.trim(), password: password.value });
-  if (result.error) return setStatus(result.error.message);
-  setStatus('');
-  await applySession(result.data.session);
-};
-
-document.getElementById('signUp').onclick = async () => {
-  const result = await supabaseClient.auth.signUp({ email: email.value.trim(), password: password.value });
-  if (result.error) return setStatus(result.error.message);
-  if (result.data.session) await applySession(result.data.session);
-  else setStatus('Account created. Check your email if confirmation is required.');
-};
-
-signOut.onclick = async () => {
-  await supabaseClient.auth.signOut({ scope: 'local' });
-  activeList = null;
-  document.getElementById('listView').hidden = true;
-  await applySession(null);
-};
-
-document.getElementById('newList').onclick = async () => {
-  const input = document.getElementById('listName');
-  const name = input.value.trim();
-  if (!name) return;
-  const ordered = document.getElementById('listOrdered').checked;
-  const result = await supabaseClient.from('lists').insert({ name, owner_id: user.id, ordered });
-  if (result.error) return setStatus(result.error.message);
-  input.value = '';
-  document.getElementById('listOrdered').checked = false;
-  await refreshLists();
-};
-
-document.getElementById('newItem').onclick = async () => {
-  const input = document.getElementById('item');
-  const text = input.value.trim();
-  if (!text || !activeList) return;
-  const latest = await supabaseClient.from('list_items').select('position').eq('list_id', activeList.id).order('position', { ascending: false }).limit(1);
-  if (latest.error) return setStatus(latest.error.message);
-  const position = (latest.data?.[0]?.position ?? -1) + 1;
-  const result = await supabaseClient.from('list_items').insert({ list_id: activeList.id, owner_id: user.id, text, position });
-  if (result.error) return setStatus(result.error.message);
-  input.value = '';
-  await refreshItems();
-};
-
+document.getElementById('signIn').onclick = async () => { const result = await supabaseClient.auth.signInWithPassword({ email: email.value.trim(), password: password.value }); if (result.error) return setStatus(result.error.message); setStatus(''); await applySession(result.data.session); };
+document.getElementById('signUp').onclick = async () => { const result = await supabaseClient.auth.signUp({ email: email.value.trim(), password: password.value }); if (result.error) return setStatus(result.error.message); if (result.data.session) await applySession(result.data.session); else setStatus('Account created. Check your email if confirmation is required.'); };
+signOut.onclick = async () => { await supabaseClient.auth.signOut({ scope: 'local' }); activeList = null; document.getElementById('listView').hidden = true; await applySession(null); };
+document.getElementById('newList').onclick = async () => { const input = document.getElementById('listName'); const name = input.value.trim(); if (!name) return; const ordered = document.getElementById('listOrdered').checked; const result = await supabaseClient.from('lists').insert({ name, owner_id: user.id, ordered }); if (result.error) return setStatus(result.error.message); input.value = ''; document.getElementById('listOrdered').checked = false; await refreshLists(); };
+document.getElementById('newItem').onclick = async () => { const input = document.getElementById('item'); const text = input.value.trim(); if (!text || !activeList) return; const latest = await supabaseClient.from('list_items').select('position').eq('list_id', activeList.id).order('position', { ascending: false }).limit(1); if (latest.error) return setStatus(latest.error.message); const position = (latest.data?.[0]?.position ?? -1) + 1; const result = await supabaseClient.from('list_items').insert({ list_id: activeList.id, owner_id: user.id, text, position }); if (result.error) return setStatus(result.error.message); input.value = ''; await refreshItems(); };
 document.getElementById('deleteList').onclick = () => { if (activeList) deleteList(activeList); };
-
 supabaseClient.auth.onAuthStateChange((_event, session) => applySession(session));
 supabaseClient.auth.getSession().then(({ data }) => applySession(data.session));
