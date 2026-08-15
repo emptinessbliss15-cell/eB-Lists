@@ -25,6 +25,9 @@ function displayText(item) {
   const value = preferred?.value;
   return value == null ? item.data.holon?.type_name || 'Untitled' : String(value);
 }
+function holonField(item, name) {
+  return item.kind === 'holon' ? (item.data.holon?.holon_fields || []).find(f => f.name === name) : null;
+}
 
 async function ensureDefaultTemplates() {
   let current = await holabase.getTemplates(user.id);
@@ -78,70 +81,32 @@ function makeFieldControl(field) {
   const many = field.cardinality === '0..many' || field.cardinality === '1..many';
   const config = field.config || {};
   let input;
-
   if (field.field_type === 'boolean') {
-    input = document.createElement('input');
-    input.type = 'checkbox';
-    input.checked = !!field.default_value;
+    input = document.createElement('input'); input.type = 'checkbox'; input.checked = !!field.default_value;
   } else if (field.field_type === 'choice' || field.field_type === 'reference') {
-    input = document.createElement('select');
-    input.multiple = many;
-    input.dataset.pendingReference = field.field_type === 'reference' ? 'true' : 'false';
-    const options = field.field_type === 'choice'
-      ? (Array.isArray(config.options) ? config.options : [])
-      : [];
-    options.forEach(optionValue => {
-      const option = document.createElement('option');
-      option.value = typeof optionValue === 'object' ? optionValue.value : optionValue;
-      option.textContent = typeof optionValue === 'object' ? (optionValue.label ?? optionValue.value) : optionValue;
-      input.appendChild(option);
-    });
-    if (field.field_type === 'reference') {
-      loadReferenceOptions(field).then(options => {
-        options.forEach(optionValue => {
-          const option = document.createElement('option');
-          option.value = optionValue.id;
-          option.textContent = optionValue.label;
-          input.appendChild(option);
-        });
-      }).catch(error => setStatus(`Reference options failed: ${error.message}`));
-    }
+    input = document.createElement('select'); input.multiple = many; input.dataset.pendingReference = field.field_type === 'reference' ? 'true' : 'false';
+    const options = field.field_type === 'choice' ? (Array.isArray(config.options) ? config.options : []) : [];
+    options.forEach(optionValue => { const option = document.createElement('option'); option.value = typeof optionValue === 'object' ? optionValue.value : optionValue; option.textContent = typeof optionValue === 'object' ? (optionValue.label ?? optionValue.value) : optionValue; input.appendChild(option); });
+    if (field.field_type === 'reference') loadReferenceOptions(field).then(options => options.forEach(optionValue => { const option = document.createElement('option'); option.value = optionValue.id; option.textContent = optionValue.label; input.appendChild(option); })).catch(error => setStatus(`Reference options failed: ${error.message}`));
   } else {
-    input = document.createElement('input');
-    input.type = field.field_type === 'number' ? 'number' : field.field_type === 'url' ? 'url' : 'text';
+    input = document.createElement('input'); input.type = field.field_type === 'number' ? 'number' : field.field_type === 'url' ? 'url' : 'text';
     if (field.field_type === 'long_text') input.type = 'text';
     if (field.default_value != null && !Array.isArray(field.default_value)) input.value = field.default_value;
   }
-
-  input.dataset.field = field.name;
-  input.dataset.fieldType = field.field_type;
-  input.dataset.cardinality = field.cardinality;
-  return input;
+  input.dataset.field = field.name; input.dataset.fieldType = field.field_type; input.dataset.cardinality = field.cardinality; return input;
 }
 
 function renderTemplateFields() {
   const template = templates.find(t => t.id === itemTemplate.value) || templates[0];
   if (!template) { newItemFields.innerHTML = ''; return; }
-  itemTemplate.value = template.id;
-  newItemFields.innerHTML = '';
-  [...(template.template_fields || [])].sort((a,b) => a.position - b.position).forEach(field => {
-    const label = document.createElement('label');
-    label.title = field.name;
-    const input = makeFieldControl(field);
-    if (field.field_type === 'boolean') label.className = 'boolean-field';
-    const name = document.createElement('span'); name.className = 'field-name'; name.textContent = field.name;
-    label.append(input, name);
-    newItemFields.appendChild(label);
-  });
+  itemTemplate.value = template.id; newItemFields.innerHTML = '';
+  [...(template.template_fields || [])].sort((a,b) => a.position - b.position).forEach(field => { const label = document.createElement('label'); label.title = field.name; const input = makeFieldControl(field); if (field.field_type === 'boolean') label.className = 'boolean-field'; const name = document.createElement('span'); name.className = 'field-name'; name.textContent = field.name; label.append(input, name); newItemFields.appendChild(label); });
 }
 
 function readFieldValue(input, field) {
   if (field.field_type === 'boolean') return input.checked;
   if (field.field_type === 'number') return input.value === '' ? null : Number(input.value);
-  if (field.field_type === 'choice' || field.field_type === 'reference') {
-    const selected = [...input.selectedOptions].map(option => option.value);
-    return (field.cardinality === '0..many' || field.cardinality === '1..many') ? selected : (selected[0] ?? null);
-  }
+  if (field.field_type === 'choice' || field.field_type === 'reference') { const selected = [...input.selectedOptions].map(option => option.value); return (field.cardinality === '0..many' || field.cardinality === '1..many') ? selected : (selected[0] ?? null); }
   return input.value.trim();
 }
 
@@ -150,137 +115,59 @@ async function refreshLists() {
   if (error) return setStatus(error.message);
   lists.innerHTML = '';
   data.forEach(list => {
-    const li = document.createElement('li');
-    const row = document.createElement('div'); row.className = 'eb-list-row';
-    const open = document.createElement('button'); open.className = 'secondary eb-list-open'; open.type = 'button';
-    open.textContent = `${list.name} ${list.ordered ? '· ordered' : '· unordered'}`; open.onclick = () => openList(list);
-    const rename = document.createElement('button'); rename.className = 'secondary eb-list-action'; rename.type = 'button'; rename.textContent = '✎'; rename.title = 'Rename list';
-    rename.onclick = e => { e.stopPropagation(); renameList(list); };
-    const del = document.createElement('button'); del.className = 'secondary eb-list-action'; del.type = 'button'; del.textContent = '×'; del.title = 'Delete list';
-    del.onclick = e => { e.stopPropagation(); deleteList(list); };
+    const li = document.createElement('li'); const row = document.createElement('div'); row.className = 'eb-list-row';
+    const open = document.createElement('button'); open.className = 'secondary eb-list-open'; open.type = 'button'; open.textContent = `${list.name} ${list.ordered ? '· ordered' : '· unordered'}`; open.dataset.listId = list.id; open.onclick = () => openList(list);
+    const rename = document.createElement('button'); rename.className = 'secondary eb-list-action'; rename.type = 'button'; rename.textContent = '✎'; rename.title = 'Rename list'; rename.onclick = e => { e.stopPropagation(); renameList(list); };
+    const del = document.createElement('button'); del.className = 'secondary eb-list-action'; del.type = 'button'; del.textContent = '×'; del.title = 'Delete list'; del.onclick = e => { e.stopPropagation(); deleteList(list); };
     row.append(open, rename, del); li.appendChild(row); lists.appendChild(li);
   });
 }
 
 async function renameList(list) {
-  const name = prompt('Rename list:', list.name); if (name === null) return;
-  const newName = name.trim(); if (!newName || newName === list.name) return;
-  const result = await supabaseClient.from('lists').update({ name: newName }).eq('id', list.id).eq('owner_id', user.id).select().single();
-  if (result.error) return setStatus(`Rename failed: ${result.error.message}`);
-  if (activeList?.id === list.id) { activeList = { ...activeList, name: result.data.name }; document.getElementById('activeList').textContent = result.data.name; }
-  await refreshLists(); setStatus('List renamed.');
+  const name = prompt('Rename list:', list.name); if (name === null) return; const newName = name.trim(); if (!newName || newName === list.name) return;
+  const result = await supabaseClient.from('lists').update({ name: newName }).eq('id', list.id).eq('owner_id', user.id).select().single(); if (result.error) return setStatus(`Rename failed: ${result.error.message}`);
+  if (activeList?.id === list.id) { activeList = { ...activeList, name: result.data.name }; document.getElementById('activeList').textContent = result.data.name; } await refreshLists(); setStatus('List renamed.');
 }
 
 async function openList(list) {
-  activeList = list; document.getElementById('activeList').textContent = list.name;
-  document.getElementById('listMode').textContent = list.ordered ? 'Ordered · use ↑ / ↓ to arrange' : 'Unordered';
-  items.classList.toggle('ordered-items', !!list.ordered); document.getElementById('listView').hidden = false;
-  await refreshItems();
+  activeList = list; document.getElementById('activeList').textContent = list.name; document.getElementById('listMode').textContent = list.ordered ? 'Ordered · use ↑ / ↓ to arrange' : 'Unordered'; items.classList.toggle('ordered-items', !!list.ordered); document.getElementById('listView').hidden = false; await refreshItems();
 }
 
 async function refreshItems() {
   if (!activeList) return;
-  const legacyResult = await supabaseClient.from('list_items').select('*').eq('list_id', activeList.id).order('position').order('created_at');
-  if (legacyResult.error) return setStatus(legacyResult.error.message);
-  let holons = [];
-  try { holons = await holabase.getListHolons(activeList.id); } catch (error) { return setStatus(error.message); }
-  const combined = [...(legacyResult.data || []).map(data => ({ kind: 'legacy', data })), ...holons.map(data => ({ kind: 'holon', data }))]
-    .sort((a,b) => (a.data.position ?? 0) - (b.data.position ?? 0) || new Date(a.data.created_at) - new Date(b.data.created_at));
-  items.innerHTML = '';
-  combined.forEach((item, index) => renderItem(item, combined, index));
+  const legacyResult = await supabaseClient.from('list_items').select('*').eq('list_id', activeList.id).order('position').order('created_at'); if (legacyResult.error) return setStatus(legacyResult.error.message);
+  let holons = []; try { holons = await holabase.getListHolons(activeList.id); } catch (error) { return setStatus(error.message); }
+  const combined = [...(legacyResult.data || []).map(data => ({ kind: 'legacy', data })), ...holons.map(data => ({ kind: 'holon', data }))].sort((a,b) => (a.data.position ?? 0) - (b.data.position ?? 0) || new Date(b.data.created_at) - new Date(a.data.created_at));
+  items.innerHTML = ''; combined.forEach((item, index) => renderItem(item, combined, index));
 }
 
 function renderItem(item, combined, index) {
-  const li = document.createElement('li');
-  const row = document.createElement('div'); row.className = 'eb-spread eb-item-row';
-  const text = displayText(item);
-  const toggleField = item.kind === 'holon' ? (item.data.holon.holon_fields || []).find(f => f.field_type === 'boolean' && ['completed','purchased'].includes(f.name)) : null;
+  const li = document.createElement('li'); const row = document.createElement('div'); row.className = 'eb-spread eb-item-row';
+  const text = displayText(item); const completedField = holonField(item, 'completed'); const purchasedField = holonField(item, 'purchased'); const quantityField = holonField(item, 'quantity');
+  const toggleField = item.kind === 'holon' ? (completedField || purchasedField) : null;
   const isDone = item.kind === 'legacy' ? !!item.data.completed : !!toggleField?.value;
-  const button = document.createElement('button'); button.className = 'secondary eb-item-text'; button.type = 'button';
-  button.textContent = isDone ? `✓ ${text}` : text;
-  button.title = item.kind === 'holon' ? item.data.holon.type_name || 'Holon' : 'Legacy item';
+  if (item.kind === 'holon' && quantityField) {
+    const quantity = document.createElement('span'); quantity.className = 'eb-item-quantity'; quantity.textContent = `×${quantityField.value ?? 1}`; quantity.title = 'Quantity'; row.appendChild(quantity);
+  }
+  const button = document.createElement('button'); button.className = 'secondary eb-item-text'; button.type = 'button'; button.textContent = isDone ? `✓ ${text}` : text; button.title = item.kind === 'holon' ? item.data.holon.type_name || 'Holon' : 'Legacy item';
   button.onclick = async () => {
-    if (item.kind === 'legacy') {
-      const result = await supabaseClient.from('list_items').update({ completed: !item.data.completed }).eq('id', item.data.id);
-      if (result.error) return setStatus(result.error.message);
-    } else if (toggleField) {
-      try { await holabase.updateField(toggleField.id, !toggleField.value); } catch (error) { return setStatus(error.message); }
-    }
+    if (item.kind === 'legacy') { const result = await supabaseClient.from('list_items').update({ completed: !item.data.completed }).eq('id', item.data.id); if (result.error) return setStatus(result.error.message); }
+    else if (toggleField) { try { await holabase.updateField(toggleField.id, !toggleField.value); } catch (error) { return setStatus(error.message); } }
     await refreshItems();
   };
   const controls = document.createElement('span'); controls.className = 'eb-item-controls';
-  if (activeList.ordered) {
-    const up = document.createElement('button'); up.className = 'secondary eb-order-button'; up.type = 'button'; up.textContent = '↑'; up.title = 'Move up'; up.disabled = index === 0;
-    const down = document.createElement('button'); down.className = 'secondary eb-order-button'; down.type = 'button'; down.textContent = '↓'; down.title = 'Move down'; down.disabled = index === combined.length - 1;
-    up.onclick = e => { e.stopPropagation(); moveCombinedItem(combined, index, -1); }; down.onclick = e => { e.stopPropagation(); moveCombinedItem(combined, index, 1); };
-    controls.append(up, down);
-  }
-  const del = document.createElement('button'); del.className = 'secondary eb-order-button'; del.type = 'button'; del.textContent = '×'; del.title = 'Delete item';
-  del.onclick = async e => { e.stopPropagation(); await deleteItem(item); };
-  controls.appendChild(del); row.append(button, controls); li.appendChild(row); items.appendChild(li);
+  if (activeList.ordered) { const up = document.createElement('button'); up.className = 'secondary eb-order-button'; up.type = 'button'; up.textContent = '↑'; up.title = 'Move up'; up.disabled = index === 0; const down = document.createElement('button'); down.className = 'secondary eb-order-button'; down.type = 'button'; down.textContent = '↓'; down.title = 'Move down'; down.disabled = index === combined.length - 1; up.onclick = e => { e.stopPropagation(); moveCombinedItem(combined, index, -1); }; down.onclick = e => { e.stopPropagation(); moveCombinedItem(combined, index, 1); }; controls.append(up, down); }
+  if (item.kind === 'holon' && purchasedField) { const purchased = document.createElement('input'); purchased.type = 'checkbox'; purchased.className = 'eb-item-purchased'; purchased.checked = !!purchasedField.value; purchased.title = 'Purchased'; purchased.onclick = async e => { e.stopPropagation(); try { await holabase.updateField(purchasedField.id, purchased.checked); await refreshItems(); } catch (error) { setStatus(error.message); } }; controls.appendChild(purchased); }
+  const del = document.createElement('button'); del.className = 'secondary eb-order-button'; del.type = 'button'; del.textContent = '×'; del.title = 'Delete item'; del.onclick = async e => { e.stopPropagation(); await deleteItem(item); }; controls.appendChild(del); row.append(button, controls); li.appendChild(row); items.appendChild(li);
 }
 
-async function moveCombinedItem(combined, index, direction) {
-  const target = index + direction; if (target < 0 || target >= combined.length) return;
-  const reordered = [...combined]; [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
-  const results = await Promise.all(reordered.map((item, position) => item.kind === 'legacy' ? supabaseClient.from('list_items').update({ position }).eq('id', item.data.id) : supabaseClient.from('list_holons').update({ position }).eq('id', item.data.id)));
-  const error = results.find(r => r.error)?.error; if (error) return setStatus(error.message); await refreshItems();
-}
-
-async function deleteItem(item) {
-  if (!confirm(`Delete “${displayText(item)}”?`)) return;
-  if (item.kind === 'legacy') {
-    const result = await supabaseClient.from('list_items').delete().eq('id', item.data.id); if (result.error) return setStatus(result.error.message);
-  } else {
-    const result = await supabaseClient.from('list_holons').delete().eq('id', item.data.id); if (result.error) return setStatus(result.error.message);
-  }
-  await refreshItems();
-}
-
-async function deleteList(list) {
-  if (!confirm(`Delete list "${list.name}" and its items?`)) return;
-  const result = await supabaseClient.from('lists').delete().eq('id', list.id); if (result.error) return setStatus(result.error.message);
-  if (activeList?.id === list.id) { activeList = null; document.getElementById('listView').hidden = true; }
-  await refreshLists();
-}
-
-async function createTemplateItem() {
-  if (!activeList) return;
-  const template = templates.find(t => t.id === itemTemplate.value); if (!template) return setStatus('Choose an item type.');
-  const values = {};
-  for (const field of template.template_fields || []) {
-    const input = newItemFields.querySelector(`[data-field="${CSS.escape(field.name)}"]`);
-    if (!input) continue;
-    values[field.name] = readFieldValue(input, field);
-  }
-  const textField = (template.template_fields || []).find(f => f.name === 'text');
-  if (textField && !String(values.text || '').trim()) return setStatus('Enter item text.');
-  try {
-    const latest = await supabaseClient.from('list_holons').select('position').eq('list_id', activeList.id).order('position', { ascending: false }).limit(1);
-    if (latest.error) throw latest.error;
-    const legacyLatest = await supabaseClient.from('list_items').select('position').eq('list_id', activeList.id).order('position', { ascending: false }).limit(1);
-    if (legacyLatest.error) throw legacyLatest.error;
-    const position = Math.max(latest.data?.[0]?.position ?? -1, legacyLatest.data?.[0]?.position ?? -1) + 1;
-    const holon = await holabase.createHolon({ ownerId: user.id, template, values });
-    await holabase.addToList({ listId: activeList.id, holonId: holon.id, ownerId: user.id, position });
-    const textInput = newItemFields.querySelector('[data-field="text"]'); if (textInput) textInput.value = '';
-    await refreshItems(); setStatus('Item added.');
-  } catch (error) { setStatus(`Add failed: ${error.message}`); }
-}
-
-async function applySession(session) {
-  user = session?.user || null; auth.hidden = !!user; app.hidden = !user; tree.hidden = !user; signOut.hidden = !user;
-  if (user) {
-    try { await ensureDefaultTemplates(); await refreshLists(); } catch (error) { setStatus(error.message); }
-  } else { templates = []; itemTemplate.innerHTML = ''; newItemFields.innerHTML = ''; }
-}
-
+async function moveCombinedItem(combined, index, direction) { const target = index + direction; if (target < 0 || target >= combined.length) return; const reordered = [...combined]; [reordered[index], reordered[target]] = [reordered[target], reordered[index]]; const results = await Promise.all(reordered.map((item, position) => item.kind === 'legacy' ? supabaseClient.from('list_items').update({ position }).eq('id', item.data.id) : supabaseClient.from('list_holons').update({ position }).eq('id', item.data.id))); const error = results.find(r => r.error)?.error; if (error) return setStatus(error.message); await refreshItems(); }
+async function deleteItem(item) { if (!confirm(`Delete “${displayText(item)}”?`)) return; if (item.kind === 'legacy') { const result = await supabaseClient.from('list_items').delete().eq('id', item.data.id); if (result.error) return setStatus(result.error.message); } else { const result = await supabaseClient.from('list_holons').delete().eq('id', item.data.id); if (result.error) return setStatus(result.error.message); } await refreshItems(); }
+async function deleteList(list) { if (!confirm(`Delete list "${list.name}" and its items?`)) return; const result = await supabaseClient.from('lists').delete().eq('id', list.id); if (result.error) return setStatus(result.error.message); if (activeList?.id === list.id) { activeList = null; document.getElementById('listView').hidden = true; } await refreshLists(); }
+async function createTemplateItem() { if (!activeList) return; const template = templates.find(t => t.id === itemTemplate.value); if (!template) return setStatus('Choose an item type.'); const values = {}; for (const field of template.template_fields || []) { const input = newItemFields.querySelector(`[data-field="${CSS.escape(field.name)}"]`); if (!input) continue; values[field.name] = readFieldValue(input, field); } const textField = (template.template_fields || []).find(f => f.name === 'text'); if (textField && !String(values.text || '').trim()) return setStatus('Enter item text.'); try { const latest = await supabaseClient.from('list_holons').select('position').eq('list_id', activeList.id).order('position', { ascending: false }).limit(1); if (latest.error) throw latest.error; const legacyLatest = await supabaseClient.from('list_items').select('position').eq('list_id', activeList.id).order('position', { ascending: false }).limit(1); if (legacyLatest.error) throw legacyLatest.error; const position = Math.max(latest.data?.[0]?.position ?? -1, legacyLatest.data?.[0]?.position ?? -1) + 1; const holon = await holabase.createHolon({ ownerId: user.id, template, values }); await holabase.addToList({ listId: activeList.id, holonId: holon.id, ownerId: user.id, position }); const textInput = newItemFields.querySelector('[data-field="text"]'); if (textInput) textInput.value = ''; await refreshItems(); setStatus('Item added.'); } catch (error) { setStatus(`Add failed: ${error.message}`); } }
+async function applySession(session) { user = session?.user || null; auth.hidden = !!user; app.hidden = !user; tree.hidden = !user; signOut.hidden = !user; if (user) { try { await ensureDefaultTemplates(); await refreshLists(); } catch (error) { setStatus(error.message); } } else { templates = []; itemTemplate.innerHTML = ''; newItemFields.innerHTML = ''; } }
 document.getElementById('signIn').onclick = async () => { const result = await supabaseClient.auth.signInWithPassword({ email: email.value.trim(), password: password.value }); if (result.error) return setStatus(result.error.message); setStatus(''); await applySession(result.data.session); };
 document.getElementById('signUp').onclick = async () => { const result = await supabaseClient.auth.signUp({ email: email.value.trim(), password: password.value }); if (result.error) return setStatus(result.error.message); if (result.data.session) await applySession(result.data.session); else setStatus('Account created. Check your email if confirmation is required.'); };
 signOut.onclick = async () => { await supabaseClient.auth.signOut({ scope: 'local' }); activeList = null; document.getElementById('listView').hidden = true; await applySession(null); };
 document.getElementById('newList').onclick = async () => { const input = document.getElementById('listName'); const name = input.value.trim(); if (!name) return; const ordered = document.getElementById('listOrdered').checked; const result = await supabaseClient.from('lists').insert({ name, owner_id: user.id, ordered }); if (result.error) return setStatus(result.error.message); input.value = ''; document.getElementById('listOrdered').checked = false; await refreshLists(); };
-document.getElementById('newItem').onclick = createTemplateItem;
-itemTemplate.onchange = renderTemplateFields;
-document.getElementById('deleteList').onclick = () => { if (activeList) deleteList(activeList); };
-supabaseClient.auth.onAuthStateChange((_event, session) => applySession(session));
-supabaseClient.auth.getSession().then(({ data }) => applySession(data.session));
+document.getElementById('newItem').onclick = createTemplateItem; itemTemplate.onchange = renderTemplateFields; document.getElementById('deleteList').onclick = () => { if (activeList) deleteList(activeList); }; supabaseClient.auth.onAuthStateChange((_event, session) => applySession(session)); supabaseClient.auth.getSession().then(({ data }) => applySession(data.session));
