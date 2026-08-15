@@ -18,7 +18,9 @@ export function createHolabase(client) {
       return data;
     },
     async getListHolons(listId) {
-      const { data, error } = await client.from('list_holons').select('id, list_id, holon_id, position, parent_holon_id, execution_mode, created_at, holon:holons(id, type_name, template_id, holon_fields(id, name, field_type, value, position))').eq('list_id', listId).order('position').order('created_at');
+      // Explicitly select the item relationship. list_holons also references holons
+      // through parent_holon_id, so an implicit embed is ambiguous in Supabase/PostgREST.
+      const { data, error } = await client.from('list_holons').select('id, list_id, holon_id, position, parent_holon_id, execution_mode, created_at, holon:holons!list_holons_holon_id_fkey(id, type_name, template_id, holon_fields(id, name, field_type, value, position))').eq('list_id', listId).order('position').order('created_at');
       if (error) throw error;
       return data || [];
     },
