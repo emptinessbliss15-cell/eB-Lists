@@ -18,7 +18,6 @@ let activeList = null;
 let templates = [];
 
 function setStatus(text) { status.textContent = text || ''; }
-function fieldValue(item, name) { return item.holon?.holon_fields?.find(field => field.name === name)?.value; }
 function displayText(item) {
   if (item.kind === 'legacy') return item.data.text || '';
   const fields = [...(item.data.holon?.holon_fields || [])].sort((a,b) => a.position - b.position);
@@ -42,9 +41,7 @@ async function ensureDefaultTemplates() {
   ];
   for (const definition of definitions) {
     if (current.some(t => t.name === definition.name)) continue;
-    const { data: created, error } = await supabaseClient.from('templates').insert({
-      owner_id: user.id, name: definition.name, description: definition.description
-    }).select().single();
+    const { data: created, error } = await supabaseClient.from('templates').insert({ owner_id: user.id, name: definition.name, description: definition.description }).select().single();
     if (error) throw error;
     const rows = definition.fields.map((field, position) => ({ ...field, template_id: created.id, config: {}, position }));
     const { error: fieldError } = await supabaseClient.from('template_fields').insert(rows);
@@ -68,6 +65,60 @@ function renderTemplatePicker() {
   renderTemplateFields();
 }
 
+async function loadReferenceOptions(field) {
+  const sourceListId = field.config?.source_list_id || field.config?.list_id;
+  if (!sourceListId) return [];
+  const displayField = field.config?.display_field || 'text';
+  const { data, error } = await supabaseClient.from('list_items').select('id, text').eq('list_id', sourceListId).order('position').order('created_at');
+  if (error) throw error;
+  return (data || []).map(row => ({ id: row.id, label: row[displayField] ?? row.text ?? row.id }));
+}
+
+function makeFieldControl(field) {
+  const many = field.cardinality === '0..many' || field.cardinality === '1..many';
+  const config = field.config || {};
+  let input;
+
+  if (field.field_type === 'boolean') {
+    input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = !!field.default_value;
+  } else if (field.field_type === 'choice' || field.field_type === 'reference') {
+    input = document.createElement('select');
+    input.multiple = many;
+    input.dataset.pendingReference = field.field_type === 'reference' ? 'true' : 'false';
+    const options = field.field_type === 'choice'
+      ? (Array.isArray(config.options) ? config.options : [])
+      : [];
+    options.forEach(optionValue => {
+      const option = document.createElement('option');
+      option.value = typeof optionValue === 'object' ? optionValue.value : optionValue;
+      option.textContent = typeof optionValue === 'object' ? (optionValue.label ?? optionValue.value) : optionValue;
+      input.appendChild(option);
+    });
+    if (field.field_type === 'reference') {
+      loadReferenceOptions(field).then(options => {
+        options.forEach(optionValue => {
+          const option = document.createElement('option');
+          option.value = optionValue.id;
+          option.textContent = optionValue.label;
+          input.appendChild(option);
+        });
+      }).catch(error => setStatus(`Reference options failed: ${error.message}`));
+    }
+  } else {
+    input = document.createElement('input');
+    input.type = field.field_type === 'number' ? 'number' : field.field_type === 'url' ? 'url' : 'text';
+    if (field.field_type === 'long_text') input.type = 'text';
+    if (field.default_value != null && !Array.isArray(field.default_value)) input.value = field.default_value;
+  }
+
+  input.dataset.field = field.name;
+  input.dataset.fieldType = field.field_type;
+  input.dataset.cardinality = field.cardinality;
+  return input;
+}
+
 function renderTemplateFields() {
   const template = templates.find(t => t.id === itemTemplate.value) || templates[0];
   if (!template) { newItemFields.innerHTML = ''; return; }
@@ -76,20 +127,22 @@ function renderTemplateFields() {
   [...(template.template_fields || [])].sort((a,b) => a.position - b.position).forEach(field => {
     const label = document.createElement('label');
     label.title = field.name;
-    if (field.field_type === 'boolean') {
-      const input = document.createElement('input');
-      input.type = 'checkbox'; input.dataset.field = field.name; input.checked = !!field.default_value;
-      label.append(input, document.createTextNode(field.name));
-    } else {
-      const input = document.createElement('input');
-      input.dataset.field = field.name;
-      input.placeholder = field.name;
-      input.type = field.field_type === 'number' ? 'number' : field.field_type === 'url' ? 'url' : 'text';
-      if (field.default_value != null) input.value = field.default_value;
-      label.append(input);
-    }
+    const input = makeFieldControl(field);
+    if (field.field_type === 'boolean') label.className = 'boolean-field';
+    const name = document.createElement('span'); name.className = 'field-name'; name.textContent = field.name;
+    label.append(input, name);
     newItemFields.appendChild(label);
   });
+}
+
+function readFieldValue(input, field) {
+  if (field.field_type === 'boolean') return input.checked;
+  if (field.field_type === 'number') return input.value === '' ? null : Number(input.value);
+  if (field.field_type === 'choice' || field.field_type === 'reference') {
+    const selected = [...input.selectedOptions].map(option => option.value);
+    return (field.cardinality === '0..many' || field.cardinality === '1..many') ? selected : (selected[0] ?? null);
+  }
+  return input.value.trim();
 }
 
 async function refreshLists() {
@@ -131,10 +184,8 @@ async function refreshItems() {
   if (legacyResult.error) return setStatus(legacyResult.error.message);
   let holons = [];
   try { holons = await holabase.getListHolons(activeList.id); } catch (error) { return setStatus(error.message); }
-  const combined = [
-    ...(legacyResult.data || []).map(data => ({ kind: 'legacy', data })),
-    ...holons.map(data => ({ kind: 'holon', data }))
-  ].sort((a,b) => (a.data.position ?? 0) - (b.data.position ?? 0) || new Date(a.data.created_at) - new Date(b.data.created_at));
+  const combined = [...(legacyResult.data || []).map(data => ({ kind: 'legacy', data })), ...holons.map(data => ({ kind: 'holon', data }))]
+    .sort((a,b) => (a.data.position ?? 0) - (b.data.position ?? 0) || new Date(a.data.created_at) - new Date(b.data.created_at));
   items.innerHTML = '';
   combined.forEach((item, index) => renderItem(item, combined, index));
 }
@@ -172,9 +223,7 @@ function renderItem(item, combined, index) {
 async function moveCombinedItem(combined, index, direction) {
   const target = index + direction; if (target < 0 || target >= combined.length) return;
   const reordered = [...combined]; [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
-  const results = await Promise.all(reordered.map((item, position) => item.kind === 'legacy'
-    ? supabaseClient.from('list_items').update({ position }).eq('id', item.data.id)
-    : supabaseClient.from('list_holons').update({ position }).eq('id', item.data.id)));
+  const results = await Promise.all(reordered.map((item, position) => item.kind === 'legacy' ? supabaseClient.from('list_items').update({ position }).eq('id', item.data.id) : supabaseClient.from('list_holons').update({ position }).eq('id', item.data.id)));
   const error = results.find(r => r.error)?.error; if (error) return setStatus(error.message); await refreshItems();
 }
 
@@ -202,9 +251,7 @@ async function createTemplateItem() {
   for (const field of template.template_fields || []) {
     const input = newItemFields.querySelector(`[data-field="${CSS.escape(field.name)}"]`);
     if (!input) continue;
-    if (field.field_type === 'boolean') values[field.name] = input.checked;
-    else if (field.field_type === 'number') values[field.name] = input.value === '' ? null : Number(input.value);
-    else values[field.name] = input.value.trim();
+    values[field.name] = readFieldValue(input, field);
   }
   const textField = (template.template_fields || []).find(f => f.name === 'text');
   if (textField && !String(values.text || '').trim()) return setStatus('Enter item text.');
