@@ -34,7 +34,7 @@
     return view;
   }
 
-  function hideSystemView(){const v=document.getElementById('systemView');if(v)v.hidden=true;document.getElementById('listWorkspace').hidden=false;}
+  function hideSystemView(){const v=document.getElementById('systemView');if(v)v.hidden=true;}
 
   function addSystemNodes(){
     if(!tree || tree.dataset.systemNodes==='1')return;
@@ -116,6 +116,9 @@
     if(!tree.dataset.systemNodes && tree.children.length) addSystemNodes();
   });
   observer.observe(tree,{childList:true});
+  const workspace=document.getElementById('listWorkspace');
+  const workspaceObserver=new MutationObserver(()=>{if(!workspace.hidden)hideSystemView();});
+  workspaceObserver.observe(workspace,{attributes:true,attributeFilter:['hidden']});
   setTimeout(addSystemNodes,300);
   window.addEventListener('eb:lists-rendered',refreshSystemNodes);
 })();
