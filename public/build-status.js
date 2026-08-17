@@ -1,6 +1,12 @@
 (() => {
   const badge = document.querySelector('.cf-build-status');
   if (!badge) return;
+
+  // Tree actions are primary controls, not hover-only decoration.
+  const style = document.createElement('style');
+  style.textContent = `.eb-tree-actions{opacity:1!important;visibility:visible!important}.eb-tree-action{border:1px solid transparent!important}.eb-tree-action:hover,.eb-tree-action:focus-visible{border-color:#8886!important;background:#8882!important;opacity:1!important}`;
+  document.head.appendChild(style);
+
   let currentVersion = null;
   let currentCommit = null;
 
