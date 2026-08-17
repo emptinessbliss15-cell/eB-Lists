@@ -43,7 +43,7 @@
   function treeButton(list, depth) {
     const row=document.createElement('div'); row.className='eb-tree-row';
     const wrap=document.createElement('div'); wrap.className='eb-tree-entry'; wrap.style.paddingLeft=(depth*14)+'px';
-    const b=document.createElement('button'); b.type='button'; b.className='eb-tree-node'; b.textContent=(depth?'• ':'')+`${list.name} · ${list.ordered?'ordered':'unordered'}`; b.setAttribute('aria-current',String(activeList?.id===list.id)); b.onclick=()=>openList(list);
+    const b=document.createElement('button'); b.type='button'; b.className='eb-tree-node'; b.textContent=(depth?'• ':'')+`${list.name} ${list.ordered?'☷':'☰'}`; b.title=list.ordered?'Ordered list — click to open':'Unordered list — click to open'; b.setAttribute('aria-current',String(activeList?.id===list.id)); b.onclick=()=>openList(list);
     wrap.append(b);
     const actions=document.createElement('div'); actions.className='eb-tree-actions';
     actions.append(actionButton('+','Add sub-list',()=>addSubList(list)), actionButton('↑','Move up',()=>moveList(list,-1)), actionButton('↓','Move down',()=>moveList(list,1)), actionButton('×','Delete list',()=>deleteList(list)));
