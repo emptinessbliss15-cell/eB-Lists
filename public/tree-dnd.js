@@ -3,39 +3,34 @@
   const style=document.createElement('style');
   style.textContent='.eb-tree-drag-handle{flex:0 0 20px;width:20px;padding:2px!important;border:0;background:transparent;color:inherit;cursor:grab;opacity:.65}.eb-tree-drag-handle:active{cursor:grabbing}.eb-tree-entry.eb-tree-dragging{opacity:.45}.eb-tree-entry.eb-tree-drop-before{border-top:2px solid currentColor}.eb-tree-entry.eb-tree-drop-after{border-bottom:2px solid currentColor}.eb-tree-entry.eb-tree-drop-child{outline:1px dashed currentColor;outline-offset:1px}.eb-tree-collapse{flex:0 0 20px;width:20px;padding:2px!important;border:0;background:transparent;color:inherit}.eb-tree-collapse:hover{background:#8883;border-radius:3px}';
   document.head.appendChild(style);
-  let busy=false,lastMapAt=0;
+  let busy=false,enhanceTimer=null;
   const collapsed=new Set(JSON.parse(localStorage.getItem('eb-tree-collapsed')||'[]'));
   function saveCollapsed(){localStorage.setItem('eb-tree-collapsed',JSON.stringify([...collapsed]));}
   function applyCollapsed(){
     const rows=[...document.querySelectorAll('#tree .eb-tree-entry[data-list-id]')];
-    rows.forEach(r=>r.parentElement.style.display='');
     const byId=new Map(rows.map(r=>[r.dataset.listId,r]));
-    rows.forEach(r=>{
-      let p=r.dataset.parentId;
-      while(p){if(collapsed.has(p)){r.parentElement.style.display='none';break}p=byId.get(p)?.dataset.parentId||null;}
-    });
+    rows.forEach(r=>{r.parentElement.style.display='';let p=r.dataset.parentId;while(p){if(collapsed.has(p)){r.parentElement.style.display='none';break}p=byId.get(p)?.dataset.parentId||null;}});
     rows.forEach(r=>{const b=r.querySelector('.eb-tree-collapse');if(b)b.textContent=collapsed.has(r.dataset.listId)?'▸':'▾';});
   }
   async function hydrateIds(){
     const tree=document.getElementById('tree');if(!tree)return;
-    const {data,error}=await db.from('lists').select('id,name,parent_list_id,position').order('position').order('created_at');if(error)return;
-    const byName=new Map();(data||[]).forEach(x=>{if(!byName.has(x.name))byName.set(x.name,[]);byName.get(x.name).push(x)});
+    const {data,error}=await db.from('lists').select('id,name,parent_list_id,position').order('position').order('created_at');if(error)return false;
+    const byName=new Map(),children=new Set();
+    (data||[]).forEach(x=>{if(!byName.has(x.name))byName.set(x.name,[]);byName.get(x.name).push(x);if(x.parent_list_id)children.add(x.parent_list_id);});
     tree.querySelectorAll('.eb-tree-entry').forEach(entry=>{
       const node=entry.querySelector('.eb-tree-node');if(!node)return;
       const name=node.textContent.replace(/^•\s*/,'').replace(/\s+·\s+(ordered|unordered)$/,'');
       const candidates=byName.get(name)||[];
-      if(candidates.length===1){entry.dataset.listId=candidates[0].id;entry.dataset.parentId=candidates[0].parent_list_id||'';entry.dataset.depth=Math.round(parseInt(entry.style.paddingLeft||'0',10)/14);}
+      if(candidates.length===1){entry.dataset.listId=candidates[0].id;entry.dataset.parentId=candidates[0].parent_list_id||'';entry.dataset.hasChildren=children.has(candidates[0].id)?'1':'0';}
     });
-    const ids=new Set((data||[]).map(x=>x.id));
-    tree.querySelectorAll('.eb-tree-entry[data-list-id]').forEach(entry=>{const has=(data||[]).some(x=>x.parent_list_id===entry.dataset.listId);entry.dataset.hasChildren=has?'1':'0';});
-    lastMapAt=Date.now();
+    return true;
   }
   async function persistGroup(rows,parentId){for(let i=0;i<rows.length;i++){const r=await db.from('lists').update({parent_list_id:parentId||null,position:i}).eq('id',rows[i].id);if(r.error)return r.error}}
-  function clearTargets(){document.querySelectorAll('.eb-tree-drop-before,.eb-tree-drop-after,.eb-tree-drop-child').forEach(x=>x.classList.remove('eb-tree-drop-before','eb-tree-drop-after','eb-tree-drop-child'));}
+  function clearTargets(){document.querySelectorAll('#tree .eb-tree-drop-before,#tree .eb-tree-drop-after,#tree .eb-tree-drop-child').forEach(x=>x.classList.remove('eb-tree-drop-before','eb-tree-drop-after','eb-tree-drop-child'));}
   async function refreshTree(){const nav=document.getElementById('listsNav');if(nav)nav.click();}
   async function enhance(){
     const tree=document.getElementById('tree');if(!tree||busy)return;
-    if(Date.now()-lastMapAt>1000)await hydrateIds();
+    if(!(await hydrateIds()))return;
     tree.querySelectorAll('.eb-tree-row').forEach(row=>{
       const entry=row.querySelector('.eb-tree-entry'),node=row.querySelector('.eb-tree-node');if(!entry||!node)return;
       const id=entry.dataset.listId;if(!id||entry.dataset.dragEnhanced==='1')return;
@@ -53,17 +48,15 @@
         const {data,error}=await db.from('lists').select('id,name,parent_list_id,position').order('position').order('created_at');if(error){busy=false;return}
         const all=data||[],target=all.find(x=>x.id===targetId),dragged=all.find(x=>x.id===dragId);if(!target||!dragged){busy=false;return}
         let p=target.parent_list_id,cycle=targetId===dragId;while(p&&!cycle){if(p===dragId)cycle=true;p=all.find(x=>x.id===p)?.parent_list_id||null}if(cycle){busy=false;return}
-        const childDrop=y>=r.height*.25&&y<=r.height*.75;
-        const newParent=childDrop?targetId:(target.parent_list_id||null);
+        const childDrop=y>=r.height*.25&&y<=r.height*.75,newParent=childDrop?targetId:(target.parent_list_id||null);
         const siblings=all.filter(x=>(x.parent_list_id||null)===(newParent||null)&&x.id!==dragId).sort((a,b)=>a.position-b.position);
-        let insert=siblings.length;
-        if(!childDrop){const ti=siblings.findIndex(x=>x.id===targetId);insert=y<r.height*.5?Math.max(0,ti):ti+1;}
-        siblings.splice(insert,0,dragged);
-        const saveErr=await persistGroup(siblings,newParent);if(saveErr){busy=false;return}
-        busy=false;lastMapAt=0;await refreshTree();
+        let insert=siblings.length;if(!childDrop){const ti=siblings.findIndex(x=>x.id===targetId);insert=y<r.height*.5?Math.max(0,ti):ti+1;}
+        siblings.splice(insert,0,dragged);const saveErr=await persistGroup(siblings,newParent);if(saveErr){busy=false;return}busy=false;await refreshTree();
       });
     });
     applyCollapsed();
   }
-  new MutationObserver(()=>enhance()).observe(document.body,{childList:true,subtree:true});setInterval(enhance,700);enhance();
+  const observer=new MutationObserver(()=>{clearTimeout(enhanceTimer);enhanceTimer=setTimeout(enhance,120);});
+  observer.observe(document.body,{childList:true,subtree:true});
+  enhance();
 })();
