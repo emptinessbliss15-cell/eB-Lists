@@ -57,10 +57,8 @@
     const {data,error}=await supabase.from('lists').select('*').order('position').order('created_at');
     if(error)return setStatus(error.message);
     allLists=data||[]; tree.innerHTML='';
-    tree.append(treeButtonRoot('Lists',()=>{listFilter='all';renderListTree();},listFilter==='all'));
-    tree.append(treeButtonRoot('Ordered',()=>{listFilter='ordered';renderListTree();},listFilter==='ordered',true));
-    tree.append(treeButtonRoot('Unordered',()=>{listFilter='unordered';renderListTree();},listFilter==='unordered',true));
-    const visible=allLists.filter(l=>listFilter==='all'||(listFilter==='ordered'?l.ordered:!l.ordered));
+    tree.append(treeButtonRoot('Lists',null,true));
+    const visible=allLists;
     const children=new Map(); visible.forEach(l=>{const key=l.parent_list_id||'root';if(!children.has(key))children.set(key,[]);children.get(key).push(l);});
     const walk=(parent,depth)=>{(children.get(parent)||[]).forEach(list=>{tree.append(treeButton(list,depth));walk(list.id,depth+1);});};
     walk('root',0);
@@ -68,6 +66,9 @@
 
   function treeButtonRoot(label,onClick,active,child=false){
     const row=document.createElement('div'); row.className='eb-tree-row'+(child?' eb-tree-child':'');
+    if(!onClick){
+      const header=document.createElement('div'); header.className='eb-tree-section'; header.textContent=label; row.append(header); return row;
+    }
     const b=document.createElement('button'); b.type='button'; b.className='eb-tree-node'; b.textContent=(child?'• ':'')+label; b.setAttribute('aria-current',String(active)); b.onclick=onClick; row.append(b); return row;
   }
 
