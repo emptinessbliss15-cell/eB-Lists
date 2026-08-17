@@ -1,25 +1,155 @@
 (() => {
-  const db=window.supabase.createClient('https://zaabghrczrbqkxrhkinj.supabase.co','sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF');
-  const style=document.createElement('style');style.textContent='.eb-tree-drag-handle{flex:0 0 20px;width:20px;min-width:20px;padding:2px!important;margin:0!important;border:0;background:transparent;color:inherit;cursor:grab;opacity:.65;text-align:center}.eb-tree-drag-handle:hover{background:#8883;border-radius:3px;opacity:1}.eb-tree-drag-handle:active{cursor:grabbing}.eb-tree-entry.eb-tree-dragging{opacity:.45}.eb-tree-entry.eb-tree-drop-before{border-top:2px solid currentColor}.eb-tree-entry.eb-tree-drop-after{border-bottom:2px solid currentColor}.eb-tree-entry.eb-tree-drop-child{outline:1px dashed currentColor;outline-offset:1px}.eb-tree-collapse{flex:0 0 20px;width:20px;min-width:20px;padding:2px!important;margin:0!important;border:0;background:transparent;color:inherit;cursor:pointer;text-align:center}.eb-tree-collapse:hover{background:#8883;border-radius:3px}';document.head.appendChild(style);
-  let busy=false,enhanceTimer=null;
-  const collapsed=new Set(JSON.parse(localStorage.getItem('eb-tree-collapsed')||'[]'));
-  const saveCollapsed=()=>localStorage.setItem('eb-tree-collapsed',JSON.stringify([...collapsed]));
-  const clearTargets=()=>document.querySelectorAll('#tree .eb-tree-drop-before,#tree .eb-tree-drop-after,#tree .eb-tree-drop-child').forEach(x=>x.classList.remove('eb-tree-drop-before','eb-tree-drop-after','eb-tree-drop-child'));
-  function applyCollapsed(){const rows=[...document.querySelectorAll('#tree .eb-tree-entry[data-list-id]')],byId=new Map(rows.map(r=>[r.dataset.listId,r]));rows.forEach(r=>{r.parentElement.style.display='';let p=r.dataset.parentId;while(p){if(collapsed.has(p)){r.parentElement.style.display='none';break}p=byId.get(p)?.dataset.parentId||null;}});rows.forEach(r=>{const b=r.querySelector('.eb-tree-collapse');if(b)b.textContent=collapsed.has(r.dataset.listId)?'▸':'▾';});}
-  async function hydrateIds(){const {data,error}=await db.from('lists').select('id,parent_list_id').order('position').order('created_at');if(error)return false;const byId=new Map((data||[]).map(x=>[x.id,x]));document.querySelectorAll('#tree .eb-tree-entry').forEach(entry=>{const id=entry.dataset.listId,list=id&&byId.get(id);if(!list)return;entry.dataset.parentId=list.parent_list_id||'';entry.dataset.hasChildren=(data||[]).some(x=>x.parent_list_id===id)?'1':'0';});return true;}
-  async function persistGroup(rows,parentId){for(let i=0;i<rows.length;i++){const r=await db.from('lists').update({parent_list_id:parentId||null,position:i}).eq('id',rows[i].id);if(r.error)return r.error;}return null;}
-  async function refreshTree(){document.getElementById('listsNav')?.click();}
-  async function enhance(){const tree=document.getElementById('tree');if(!tree||busy)return;
-    tree.querySelectorAll('.eb-tree-row').forEach(row=>{const entry=row.querySelector('.eb-tree-entry'),node=row.querySelector('.eb-tree-node');if(!entry||!node||!entry.dataset.listId)return;if(!entry.querySelector('.eb-tree-drag-handle')){const handle=document.createElement('button');handle.type='button';handle.className='eb-tree-drag-handle';handle.textContent='⠿';handle.title='Drag to reorder or reparent';handle.setAttribute('aria-label',handle.title);entry.insertBefore(handle,node);handle.addEventListener('mousedown',()=>{entry.draggable=true;});handle.addEventListener('mouseup',()=>{entry.draggable=false;});}});
-    await hydrateIds();
-    tree.querySelectorAll('.eb-tree-row').forEach(row=>{const entry=row.querySelector('.eb-tree-entry'),node=row.querySelector('.eb-tree-node');if(!entry||!node)return;const id=entry.dataset.listId;if(!id)return;
-      if(entry.dataset.hasChildren==='1'&&!entry.querySelector('.eb-tree-collapse')){const collapse=document.createElement('button');collapse.type='button';collapse.className='eb-tree-collapse';collapse.textContent=collapsed.has(id)?'▸':'▾';collapse.title='Expand/collapse';collapse.setAttribute('aria-label','Expand/collapse');collapse.onclick=e=>{e.stopPropagation();if(collapsed.has(id))collapsed.delete(id);else collapsed.add(id);saveCollapsed();applyCollapsed();};entry.insertBefore(collapse,node);}
-      if(entry.dataset.dragEnhanced==='1')return;entry.dataset.dragEnhanced='1';
-      entry.draggable=false;
-      entry.addEventListener('dragstart',e=>{if(!entry.draggable){e.preventDefault();return;}e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',id);entry.classList.add('eb-tree-dragging');});
-      entry.addEventListener('dragend',()=>{entry.draggable=false;entry.classList.remove('eb-tree-dragging');clearTargets();});
-      entry.addEventListener('dragover',e=>{const dragging=tree.querySelector('.eb-tree-dragging');if(!dragging||dragging===entry)return;e.preventDefault();e.dataTransfer.dropEffect='move';clearTargets();const r=entry.getBoundingClientRect(),y=e.clientY-r.top;if(y<r.height*.25)entry.classList.add('eb-tree-drop-before');else if(y>r.height*.75)entry.classList.add('eb-tree-drop-after');else entry.classList.add('eb-tree-drop-child');});
-      entry.addEventListener('drop',async e=>{e.preventDefault();e.stopPropagation();const dragging=tree.querySelector('.eb-tree-dragging');if(!dragging||dragging===entry)return;const dragId=dragging.dataset.listId,targetId=entry.dataset.listId,r=entry.getBoundingClientRect(),y=e.clientY-r.top;clearTargets();busy=true;const {data,error}=await db.from('lists').select('id,parent_list_id,position').order('position').order('created_at');if(error){busy=false;return;}const all=data||[],target=all.find(x=>x.id===targetId),dragged=all.find(x=>x.id===dragId);if(!target||!dragged){busy=false;return;}let p=target.parent_list_id,cycle=targetId===dragId;while(p&&!cycle){if(p===dragId)cycle=true;p=all.find(x=>x.id===p)?.parent_list_id||null;}if(cycle){busy=false;return;}const childDrop=y>=r.height*.25&&y<=r.height*.75,newParent=childDrop?targetId:(target.parent_list_id||null),siblings=all.filter(x=>(x.parent_list_id||null)===(newParent||null)&&x.id!==dragId).sort((a,b)=>a.position-b.position);let insert=siblings.length;if(!childDrop){const ti=siblings.findIndex(x=>x.id===targetId);insert=y<r.height*.5?Math.max(0,ti):ti+1;}siblings.splice(insert,0,dragged);const saveErr=await persistGroup(siblings,newParent);busy=false;if(saveErr)return;await refreshTree();});
-    });applyCollapsed();}
-  const observer=new MutationObserver(()=>{clearTimeout(enhanceTimer);enhanceTimer=setTimeout(enhance,120);});observer.observe(document.body,{childList:true,subtree:true});enhance();
+  const db = window.supabase.createClient('https://zaabghrczrbqkxrhkinj.supabase.co','sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF');
+  const style = document.createElement('style');
+  style.textContent = '.eb-tree-drag-handle{flex:0 0 20px;width:20px;min-width:20px;padding:2px!important;margin:0!important;border:0;background:transparent;color:inherit;cursor:grab;opacity:.65;text-align:center}.eb-tree-drag-handle:hover{background:#8883;border-radius:3px;opacity:1}.eb-tree-drag-handle:active{cursor:grabbing}.eb-tree-entry.eb-tree-dragging{opacity:.45}.eb-tree-entry.eb-tree-drop-before{border-top:2px solid currentColor}.eb-tree-entry.eb-tree-drop-after{border-bottom:2px solid currentColor}.eb-tree-entry.eb-tree-drop-child{outline:1px dashed currentColor;outline-offset:1px}.eb-tree-collapse{flex:0 0 20px;width:20px;min-width:20px;padding:2px!important;margin:0!important;border:0;background:transparent;color:inherit;cursor:pointer;text-align:center}.eb-tree-collapse:hover{background:#8883;border-radius:3px}';
+  document.head.appendChild(style);
+  let busy = false, enhanceTimer = null;
+  const collapsed = new Set(JSON.parse(localStorage.getItem('eb-tree-collapsed') || '[]'));
+  const saveCollapsed = () => localStorage.setItem('eb-tree-collapsed', JSON.stringify([...collapsed]));
+  const clearTargets = () => document.querySelectorAll('#tree .eb-tree-drop-before,#tree .eb-tree-drop-after,#tree .eb-tree-drop-child').forEach(x => x.classList.remove('eb-tree-drop-before','eb-tree-drop-after','eb-tree-drop-child'));
+
+  function applyCollapsed() {
+    const rows = [...document.querySelectorAll('#tree .eb-tree-entry[data-list-id]')];
+    const byId = new Map(rows.map(r => [r.dataset.listId, r]));
+    rows.forEach(r => {
+      r.parentElement.style.display = '';
+      let p = r.dataset.parentId;
+      while (p) {
+        if (collapsed.has(p)) { r.parentElement.style.display = 'none'; break; }
+        p = byId.get(p)?.dataset.parentId || null;
+      }
+    });
+    rows.forEach(r => {
+      const b = r.querySelector('.eb-tree-collapse');
+      if (b) b.textContent = collapsed.has(r.dataset.listId) ? '▸' : '▾';
+    });
+  }
+
+  async function hydrateIds() {
+    const { data, error } = await db.from('lists').select('id,name,parent_list_id,position').order('position').order('created_at');
+    if (error) return false;
+    const byId = new Map((data || []).map(x => [x.id, x]));
+    const byName = new Map();
+    (data || []).forEach(x => { if (!byName.has(x.name)) byName.set(x.name, []); byName.get(x.name).push(x); });
+
+    document.querySelectorAll('#tree .eb-tree-entry').forEach(entry => {
+      let id = entry.dataset.listId;
+      let list = id ? byId.get(id) : null;
+      if (!list) {
+        const node = entry.querySelector('.eb-tree-node');
+        if (node) {
+          const name = node.textContent.replace(/^•\s*/, '').replace(/\s+·\s+(ordered|unordered)$/, '').replace(/\s+[☷☰]$/, '').trim();
+          const candidates = byName.get(name) || [];
+          if (candidates.length === 1) { list = candidates[0]; id = list.id; entry.dataset.listId = id; }
+        }
+      }
+      if (!list) return;
+      entry.dataset.parentId = list.parent_list_id || '';
+      entry.dataset.hasChildren = (data || []).some(x => x.parent_list_id === id) ? '1' : '0';
+    });
+    return true;
+  }
+
+  async function persistGroup(rows, parentId) {
+    for (let i = 0; i < rows.length; i++) {
+      const r = await db.from('lists').update({ parent_list_id: parentId || null, position: i }).eq('id', rows[i].id);
+      if (r.error) return r.error;
+    }
+    return null;
+  }
+
+  async function refreshTree() { document.getElementById('listsNav')?.click(); }
+
+  async function enhance() {
+    const tree = document.getElementById('tree');
+    if (!tree || busy) return;
+    if (!(await hydrateIds())) return;
+
+    tree.querySelectorAll('.eb-tree-row').forEach(row => {
+      const entry = row.querySelector('.eb-tree-entry');
+      const node = row.querySelector('.eb-tree-node');
+      if (!entry || !node || !entry.dataset.listId) return;
+      const id = entry.dataset.listId;
+
+      if (!entry.querySelector('.eb-tree-drag-handle')) {
+        const handle = document.createElement('button');
+        handle.type = 'button';
+        handle.className = 'eb-tree-drag-handle';
+        handle.textContent = '⠿';
+        handle.title = 'Drag to reorder or reparent';
+        handle.setAttribute('aria-label', handle.title);
+        entry.insertBefore(handle, node);
+        handle.addEventListener('mousedown', () => { entry.draggable = true; });
+        handle.addEventListener('mouseup', () => { entry.draggable = false; });
+      }
+
+      if (entry.dataset.hasChildren === '1' && !entry.querySelector('.eb-tree-collapse')) {
+        const collapse = document.createElement('button');
+        collapse.type = 'button';
+        collapse.className = 'eb-tree-collapse';
+        collapse.textContent = collapsed.has(id) ? '▸' : '▾';
+        collapse.title = 'Expand/collapse';
+        collapse.setAttribute('aria-label', 'Expand/collapse');
+        collapse.onclick = e => {
+          e.stopPropagation();
+          if (collapsed.has(id)) collapsed.delete(id); else collapsed.add(id);
+          saveCollapsed();
+          applyCollapsed();
+        };
+        entry.insertBefore(collapse, node);
+      }
+
+      if (entry.dataset.dragEnhanced === '1') return;
+      entry.dataset.dragEnhanced = '1';
+      entry.draggable = false;
+      entry.addEventListener('dragstart', e => {
+        if (!entry.draggable) { e.preventDefault(); return; }
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', id);
+        entry.classList.add('eb-tree-dragging');
+      });
+      entry.addEventListener('dragend', () => { entry.draggable = false; entry.classList.remove('eb-tree-dragging'); clearTargets(); });
+      entry.addEventListener('dragover', e => {
+        const dragging = tree.querySelector('.eb-tree-dragging');
+        if (!dragging || dragging === entry) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        clearTargets();
+        const r = entry.getBoundingClientRect(), y = e.clientY - r.top;
+        if (y < r.height * .25) entry.classList.add('eb-tree-drop-before');
+        else if (y > r.height * .75) entry.classList.add('eb-tree-drop-after');
+        else entry.classList.add('eb-tree-drop-child');
+      });
+      entry.addEventListener('drop', async e => {
+        e.preventDefault(); e.stopPropagation();
+        const dragging = tree.querySelector('.eb-tree-dragging');
+        if (!dragging || dragging === entry) return;
+        const dragId = dragging.dataset.listId, targetId = entry.dataset.listId;
+        const r = entry.getBoundingClientRect(), y = e.clientY - r.top;
+        clearTargets(); busy = true;
+        const { data, error } = await db.from('lists').select('id,parent_list_id,position').order('position').order('created_at');
+        if (error) { busy = false; return; }
+        const all = data || [], target = all.find(x => x.id === targetId), dragged = all.find(x => x.id === dragId);
+        if (!target || !dragged) { busy = false; return; }
+        let p = target.parent_list_id, cycle = targetId === dragId;
+        while (p && !cycle) { if (p === dragId) cycle = true; p = all.find(x => x.id === p)?.parent_list_id || null; }
+        if (cycle) { busy = false; return; }
+        const childDrop = y >= r.height * .25 && y <= r.height * .75;
+        const newParent = childDrop ? targetId : (target.parent_list_id || null);
+        const siblings = all.filter(x => (x.parent_list_id || null) === (newParent || null) && x.id !== dragId).sort((a,b) => a.position - b.position);
+        let insert = siblings.length;
+        if (!childDrop) { const ti = siblings.findIndex(x => x.id === targetId); insert = y < r.height * .5 ? Math.max(0, ti) : ti + 1; }
+        siblings.splice(insert, 0, dragged);
+        const saveErr = await persistGroup(siblings, newParent);
+        busy = false;
+        if (saveErr) return;
+        await refreshTree();
+      });
+    });
+    applyCollapsed();
+  }
+
+  const observer = new MutationObserver(() => { clearTimeout(enhanceTimer); enhanceTimer = setTimeout(enhance, 120); });
+  observer.observe(document.body, { childList: true, subtree: true });
+  enhance();
 })();
