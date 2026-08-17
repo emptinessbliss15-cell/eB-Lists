@@ -1,46 +1,108 @@
 (() => {
   const tree = document.getElementById('tree');
   if (!tree) return;
+
   const key = 'eb-tree-collapsed';
   const load = () => { try { return new Set(JSON.parse(localStorage.getItem(key) || '[]')); } catch { return new Set(); } };
-  const save = s => localStorage.setItem(key, JSON.stringify([...s]));
+  const save = state => localStorage.setItem(key, JSON.stringify([...state]));
   const state = load();
-  const apply = () => {
-    tree.querySelectorAll('.eb-tree-entry').forEach(entry => {
-      const id = entry.dataset.listId;
-      if (!id) return;
-      const row = entry.closest('.eb-tree-row');
-      const collapsed = state.has(id);
+
+  const rows = () => [...tree.querySelectorAll('.eb-tree-row')].filter(row => row.querySelector('.eb-tree-entry'));
+  const depth = row => {
+    const entry = row.querySelector('.eb-tree-entry');
+    const match = entry?.style.paddingLeft?.match(/([0-9.]+)px/);
+    return match ? Math.round(Number(match[1]) / 14) : 0;
+  };
+  const label = row => row.querySelector('.eb-tree-node')?.textContent?.trim() || '';
+
+  function keyFor(list, index) {
+    const currentDepth = depth(list[index]);
+    const path = [];
+    let wanted = currentDepth;
+    for (let i = index; i >= 0; i--) {
+      const d = depth(list[i]);
+      if (d === wanted) {
+        path.unshift(label(list[i]));
+        wanted--;
+        if (wanted < 0) break;
+      }
+    }
+    return path.join(' / ');
+  }
+
+  function apply() {
+    const list = rows();
+    if (!list.length) return;
+
+    list.forEach((row, index) => {
+      const entry = row.querySelector('.eb-tree-entry');
+      const node = row.querySelector('.eb-tree-node');
+      if (!entry || !node) return;
+
+      const d = depth(row);
+      const hasChildren = index + 1 < list.length && depth(list[index + 1]) > d;
       let toggle = entry.querySelector('.eb-tree-collapse');
-      const hasChildren = [...tree.querySelectorAll('.eb-tree-entry')].some(e => e !== entry && e.dataset.parentListId === id);
-      if (!hasChildren) { if (toggle) toggle.remove(); return; }
+
+      if (!hasChildren) {
+        if (toggle) toggle.remove();
+        return;
+      }
+
       if (!toggle) {
         toggle = document.createElement('button');
-        toggle.type = 'button'; toggle.className = 'eb-tree-collapse';
-        toggle.title = 'Expand/collapse'; toggle.setAttribute('aria-label', toggle.title);
-        toggle.onclick = e => { e.stopPropagation(); if (state.has(id)) state.delete(id); else state.add(id); save(state); apply(); };
-        entry.insertBefore(toggle, entry.firstChild);
+        toggle.type = 'button';
+        toggle.className = 'eb-tree-collapse';
+        toggle.onclick = event => {
+          event.stopPropagation();
+          const key = keyFor(list, index);
+          if (state.has(key)) state.delete(key); else state.add(key);
+          save(state);
+          apply();
+        };
+        entry.insertBefore(toggle, node);
       }
+
+      const key = keyFor(list, index);
+      const collapsed = state.has(key);
       toggle.textContent = collapsed ? '▸' : '▾';
+      toggle.title = collapsed ? 'Expand sub-lists' : 'Collapse sub-lists';
+      toggle.setAttribute('aria-label', toggle.title);
       toggle.setAttribute('aria-expanded', String(!collapsed));
-      if (row) {
-        const depth = Number(entry.dataset.depth || 0);
-        tree.querySelectorAll('.eb-tree-entry').forEach(child => {
-          if (child === entry) return;
-          let p = child.dataset.parentListId;
-          while (p) {
-            if (p === id) { const r = child.closest('.eb-tree-row'); if (r) r.hidden = collapsed; break; }
-            const parent = tree.querySelector(`.eb-tree-entry[data-list-id="${CSS.escape(p)}"]`);
-            p = parent?.dataset.parentListId || '';
-          }
-        });
-      }
     });
-  };
+
+    let collapsedDepth = null;
+    list.forEach((row, index) => {
+      const d = depth(row);
+      if (collapsedDepth !== null && d > collapsedDepth) {
+        row.hidden = true;
+        return;
+      }
+      collapsedDepth = state.has(keyFor(list, index)) ? d : null;
+      row.hidden = false;
+    });
+  }
+
+  const style = document.createElement('style');
+  style.textContent = `
+    .eb-tree-collapse {
+      flex: 0 0 20px;
+      width: 20px;
+      min-width: 20px;
+      padding: 2px 0 !important;
+      margin: 0 !important;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      border-radius: 3px;
+      text-align: center;
+    }
+    .eb-tree-collapse:hover,
+    .eb-tree-collapse:focus-visible { background: #8883; }
+  `;
+  document.head.appendChild(style);
+
   const observer = new MutationObserver(() => requestAnimationFrame(apply));
   observer.observe(tree, { childList: true, subtree: true });
-  const style = document.createElement('style');
-  style.textContent = '.eb-tree-collapse{flex:0 0 20px;width:20px;padding:2px!important;margin:0!important;border:0;background:transparent;color:inherit;cursor:pointer;border-radius:3px}.eb-tree-collapse:hover,.eb-tree-collapse:focus-visible{background:#8883}';
-  document.head.appendChild(style);
   setTimeout(apply, 300);
 })();
