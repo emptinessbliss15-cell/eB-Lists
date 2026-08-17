@@ -83,6 +83,24 @@
     tree.prepend(toolbar);
   }
 
+  function updateAuthenticatedShell() {
+    const auth = document.getElementById('auth');
+    const app = document.getElementById('app');
+    const loggedIn = !!app && app.hidden === false;
+    document.getElementById('header')?.toggleAttribute('hidden', !loggedIn);
+    document.getElementById('appRail')?.toggleAttribute('hidden', !loggedIn);
+    tree.toggleAttribute('hidden', !loggedIn);
+    document.getElementById('treeSplitter')?.toggleAttribute('hidden', !loggedIn);
+    const signOut = document.getElementById('signOut');
+    const user = document.getElementById('user');
+    if (loggedIn && signOut && user && signOut.parentElement !== tree) {
+      const account = document.createElement('div');
+      account.className = 'eb-tree-account';
+      account.append(user, signOut);
+      tree.prepend(account);
+    }
+  }
+
   const style = document.createElement('style');
   style.textContent = `
     .eb-tree-row[hidden]{display:none!important}
@@ -91,11 +109,18 @@
     .eb-tree-collapse-toolbar button:hover,.eb-tree-collapse-toolbar button:focus-visible{background:#8883}
     .eb-tree-collapse{flex:0 0 20px;width:20px;min-width:20px;padding:2px 0!important;margin:0!important;border:0;background:transparent;color:inherit;cursor:pointer;border-radius:3px;text-align:center}
     .eb-tree-collapse:hover,.eb-tree-collapse:focus-visible{background:#8883}
+    #header[hidden],#appRail[hidden],#tree[hidden],#treeSplitter[hidden]{display:none!important}
+    .eb-tree-account{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 4px 7px;margin-bottom:4px;border-bottom:1px solid #8886;min-width:0}
+    .eb-tree-account #user{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+    .eb-tree-account #signOut{flex:0 0 auto;padding:3px 6px;margin:0;font-size:12px}
   `;
   document.head.appendChild(style);
 
-  const observer = new MutationObserver(() => requestAnimationFrame(() => { ensureToolbar(); apply(); }));
+  const observer = new MutationObserver(() => requestAnimationFrame(() => { ensureToolbar(); apply(); updateAuthenticatedShell(); }));
   observer.observe(tree, { childList: true, subtree: true });
+  const app = document.getElementById('app');
+  if (app) new MutationObserver(updateAuthenticatedShell).observe(app, { attributes: true, attributeFilter: ['hidden'] });
   ensureToolbar();
-  setTimeout(apply, 300);
+  updateAuthenticatedShell();
+  setTimeout(() => { apply(); updateAuthenticatedShell(); }, 300);
 })();
