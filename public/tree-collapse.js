@@ -17,14 +17,13 @@
 
   function keyFor(list, index) {
     const currentDepth = depth(list[index]);
-    const path = [];
-    let wanted = currentDepth;
-    for (let i = index; i >= 0; i--) {
-      const d = depth(list[i]);
-      if (d === wanted) {
+    if (currentDepth === 0) return label(list[index]);
+    const path = [label(list[index])];
+    let wanted = currentDepth - 1;
+    for (let i = index - 1; i >= 0 && wanted >= 0; i--) {
+      if (depth(list[i]) === wanted) {
         path.unshift(label(list[i]));
         wanted--;
-        if (wanted < 0) break;
       }
     }
     return path.join(' / ');
@@ -84,6 +83,7 @@
 
   const style = document.createElement('style');
   style.textContent = `
+    .eb-tree-row[hidden] { display: none !important; }
     .eb-tree-collapse {
       flex: 0 0 20px;
       width: 20px;
