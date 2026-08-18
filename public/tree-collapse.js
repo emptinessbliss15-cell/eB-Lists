@@ -84,7 +84,6 @@
   }
 
   function updateAuthenticatedShell() {
-    const auth = document.getElementById('auth');
     const app = document.getElementById('app');
     const loggedIn = !!app && app.hidden === false;
     document.getElementById('header')?.toggleAttribute('hidden', !loggedIn);
@@ -93,11 +92,12 @@
     document.getElementById('treeSplitter')?.toggleAttribute('hidden', !loggedIn);
     const signOut = document.getElementById('signOut');
     const user = document.getElementById('user');
-    if (loggedIn && signOut && user && signOut.parentElement !== tree) {
-      const account = document.createElement('div');
-      account.className = 'eb-tree-account';
-      account.append(user, signOut);
-      tree.prepend(account);
+    const account = tree.querySelector('.eb-tree-account');
+    if (loggedIn && signOut && user && !account) {
+      const accountRow = document.createElement('div');
+      accountRow.className = 'eb-tree-account';
+      accountRow.append(user, signOut);
+      tree.prepend(accountRow);
     }
   }
 
