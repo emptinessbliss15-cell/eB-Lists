@@ -163,5 +163,6 @@
   document.getElementById('newItem').onclick=async()=>{const input=document.getElementById('item'),text=input.value.trim();if(!text||!activeList)return;const latest=await supabase.from('list_items').select('position').eq('list_id',activeList.id).is('parent_id',null).order('position',{ascending:false}).limit(1);if(latest.error)return setStatus(latest.error.message);const position=(latest.data?.[0]?.position??-1)+1;const r=await supabase.from('list_items').insert({list_id:activeList.id,owner_id:user.id,text,position,parent_id:null});if(r.error)return setStatus(r.error.message);input.value='';await refreshItems();};
   document.getElementById('listOrderToggle').onclick=toggleListOrdered;
   document.getElementById('infoNav').onclick=()=>selectApp('info');document.getElementById('listsNav').onclick=()=>selectApp('lists');document.getElementById('supportableNav').onclick=()=>selectApp('support');
-  supabase.auth.onAuthStateChange((_e,s)=>applySession(s));supabase.auth.getSession().then(({data})=>applySession(data.session));
+  supabase.auth.onAuthStateChange((_e,s)=>setTimeout(()=>applySession(s),0));
+  supabase.auth.getSession().then(({data})=>applySession(data.session));
 })();
