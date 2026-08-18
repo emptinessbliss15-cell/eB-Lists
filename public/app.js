@@ -1,5 +1,5 @@
 (() => {
-  const supabase = window.eBAuth.supabase;
+  const supabase = window.eB.supabase;
   const status = document.getElementById('status'), app = document.getElementById('app'), auth = document.getElementById('auth');
   const email = document.getElementById('email'), password = document.getElementById('password'), tree = document.getElementById('tree'), items = document.getElementById('items');
   let user = null, activeList = null, activeApp = 'lists', listFilter = 'all', allLists = [];
@@ -93,7 +93,7 @@
     const message=hasChildren?`Delete “${list.name}” and all of its sub-lists?`:`Delete “${list.name}”?`;
     if(!confirm(message))return;
     const r=await supabase.from('lists').delete().eq('id',list.id).eq('owner_id',user.id); if(r.error)return setStatus(r.error.message);
-    if(activeList?.id===list.id){activeList=null;document.getElementById('listView').hidden=true;}
+    if(activeList?.id===list.id){activeList=null;document.getElementById('listView').hidden=true;document.getElementById('contentFrame').hidden=true;}
     await renderListTree();
   }
 
