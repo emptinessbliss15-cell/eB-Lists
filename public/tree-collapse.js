@@ -104,7 +104,7 @@
   const style = document.createElement('style');
   style.textContent = `
     .eb-tree-row[hidden]{display:none!important}
-    .eb-tree-collapse-toolbar{display:flex;gap:2px;padding:2px 4px;position:sticky;top:0;z-index:3;background:Canvas}
+    .eb-tree-collapse-toolbar{display:flex;gap:2px;padding:2px 4px;position:sticky;top:0;z-index:3;background:transparent}
     .eb-tree-collapse-toolbar button{border:0;background:transparent;color:inherit;padding:2px 5px;margin:0;border-radius:3px;cursor:pointer;font-size:14px}
     .eb-tree-collapse-toolbar button:hover,.eb-tree-collapse-toolbar button:focus-visible{background:#8883}
     .eb-tree-collapse{flex:0 0 20px;width:20px;min-width:20px;padding:2px 0!important;margin:0!important;border:0;background:transparent;color:inherit;cursor:pointer;border-radius:3px;text-align:center}
