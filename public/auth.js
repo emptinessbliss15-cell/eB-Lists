@@ -37,11 +37,30 @@
     window.dispatchEvent(new CustomEvent('eb-auth-session', { detail: { session, user } }));
   }
 
-  signIn.onclick = async () => { const { error } = await supabase.auth.signInWithPassword({ email: email.value.trim(), password: password.value }); if (error) alert(error.message); };
-  signUp.onclick = async () => { const { error } = await supabase.auth.signUp({ email: email.value.trim(), password: password.value }); if (error) alert(error.message); };
-  signOut.onclick = async () => { const { error } = await supabase.auth.signOut(); if (error) alert(error.message); };
+  signIn.onclick = async () => {
+    const { error } = await supabase.auth.signInWithPassword({ email: email.value.trim(), password: password.value });
+    if (error) alert(error.message);
+  };
+
+  signUp.onclick = async () => {
+    const { error } = await supabase.auth.signUp({ email: email.value.trim(), password: password.value });
+    if (error) alert(error.message);
+  };
+
+  signOut.onclick = async () => {
+    const { error } = await supabase.auth.signOut({ scope: 'local' });
+    if (error) alert(error.message);
+  };
 
   window.eBAuth = { supabase, getSession: () => session, getUser: () => session?.user || null };
-  supabase.auth.onAuthStateChange((_event, nextSession) => render(nextSession));
-  supabase.auth.getSession().then(({ data }) => render(data.session));
+
+  // Never do UI/database work synchronously inside Supabase's auth callback.
+  supabase.auth.onAuthStateChange((_event, nextSession) => {
+    setTimeout(() => render(nextSession), 0);
+  });
+
+  // app.js is loaded before auth.js so its session listener is already installed.
+  supabase.auth.getSession().then(({ data }) => {
+    setTimeout(() => render(data.session), 0);
+  });
 })();
