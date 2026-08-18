@@ -58,17 +58,15 @@
     if(error)return setStatus(error.message);
     allLists=data||[]; tree.innerHTML='';
     tree.append(treeButtonRoot('Lists',null,true));
-    const visible=allLists;
-    const children=new Map(); visible.forEach(l=>{const key=l.parent_list_id||'root';if(!children.has(key))children.set(key,[]);children.get(key).push(l);});
+    const children=new Map(); allLists.forEach(l=>{const key=l.parent_list_id||'root';if(!children.has(key))children.set(key,[]);children.get(key).push(l);});
     const walk=(parent,depth)=>{(children.get(parent)||[]).forEach(list=>{tree.append(treeButton(list,depth));walk(list.id,depth+1);});};
     walk('root',0);
+    window.dispatchEvent(new Event('eb:lists-rendered'));
   }
 
   function treeButtonRoot(label,onClick,active,child=false){
     const row=document.createElement('div'); row.className='eb-tree-row'+(child?' eb-tree-child':'');
-    if(!onClick){
-      const header=document.createElement('div'); header.className='eb-tree-section'; header.textContent=label; row.append(header); return row;
-    }
+    if(!onClick){const header=document.createElement('div'); header.className='eb-tree-section'; header.textContent=label; row.append(header); return row;}
     const b=document.createElement('button'); b.type='button'; b.className='eb-tree-node'; b.textContent=(child?'• ':'')+label; b.setAttribute('aria-current',String(active)); b.onclick=onClick; row.append(b); return row;
   }
 
@@ -132,43 +130,32 @@
     const roots=(data||[]).filter(item=>!item.parent_id);
     const children=new Map(); (data||[]).forEach(item=>{if(item.parent_id){if(!children.has(item.parent_id))children.set(item.parent_id,[]);children.get(item.parent_id).push(item);}});
     const renderItem=(item,depth=0)=>{
-      const index=data.findIndex(x=>x.id===item.id);
-      const li=document.createElement('li');li.className='eb-item-row';
+      const index=data.findIndex(x=>x.id===item.id); const li=document.createElement('li');li.className='eb-item-row';
       const main=document.createElement('div');main.className='eb-item-main';main.style.paddingLeft=(depth*20)+'px';
       const toggle=document.createElement('button');toggle.type='button';toggle.className='eb-item-icon secondary';toggle.title=item.completed?'Mark incomplete':'Mark complete';toggle.setAttribute('aria-label',toggle.title);toggle.textContent=item.completed?'✓':'○';
       const text=document.createElement('span');text.className=item.completed?'eb-item-text completed':'eb-item-text';text.textContent=item.text;
       toggle.onclick=async()=>{const r=await supabase.from('list_items').update({completed:!item.completed}).eq('id',item.id);if(r.error)setStatus(r.error.message);else refreshItems();}; main.append(toggle,text);
       const actions=document.createElement('div');actions.className='eb-item-actions';
       const add=document.createElement('button');add.type='button';add.className='eb-item-action secondary';add.title='Add child item';add.setAttribute('aria-label','Add child item');add.textContent='+';add.onclick=()=>addChildItem(item);actions.append(add);
-      if(activeList.ordered){
-        const up=document.createElement('button');up.type='button';up.className='eb-item-action secondary';up.textContent='↑';up.title='Move up';up.disabled=index===0;up.onclick=()=>moveItem(item,-1);
-        const down=document.createElement('button');down.type='button';down.className='eb-item-action secondary';down.textContent='↓';down.title='Move down';down.disabled=index===data.length-1;down.onclick=()=>moveItem(item,1); actions.append(up,down);
-      }
+      if(activeList.ordered){const up=document.createElement('button');up.type='button';up.className='eb-item-action secondary';up.textContent='↑';up.title='Move up';up.disabled=index===0;up.onclick=()=>moveItem(item,-1);const down=document.createElement('button');down.type='button';down.className='eb-item-action secondary';down.textContent='↓';down.title='Move down';down.disabled=index===data.length-1;down.onclick=()=>moveItem(item,1);actions.append(up,down);}
       const edit=document.createElement('button');edit.type='button';edit.className='eb-item-action secondary';edit.title='Edit item';edit.setAttribute('aria-label','Edit item');edit.textContent='✎';
       const del=document.createElement('button');del.type='button';del.className='eb-item-action secondary';del.title='Delete item';del.setAttribute('aria-label','Delete item');del.textContent='×';
       edit.onclick=()=>beginItemEdit(item,text);del.onclick=async()=>{if(!confirm('Delete this item?'))return;const r=await supabase.from('list_items').delete().eq('id',item.id).eq('owner_id',user.id);if(r.error)setStatus(r.error.message);else refreshItems();};
-      actions.append(edit,del);li.append(main,actions);items.appendChild(li);
-      (children.get(item.id)||[]).sort((a,b)=>a.position-b.position).forEach(child=>renderItem(child,depth+1));
+      actions.append(edit,del);li.append(main,actions);items.appendChild(li);(children.get(item.id)||[]).sort((a,b)=>a.position-b.position).forEach(child=>renderItem(child,depth+1));
     };
     roots.sort((a,b)=>a.position-b.position).forEach(item=>renderItem(item));
   }
 
   function beginItemEdit(item,textEl){const input=document.createElement('input');input.value=item.text;input.className='eb-item-edit';textEl.replaceWith(input);input.focus();input.select();const save=async()=>{const text=input.value.trim();if(!text){refreshItems();return;}const r=await supabase.from('list_items').update({text}).eq('id',item.id).eq('owner_id',user.id);if(r.error)setStatus(r.error.message);await refreshItems();};input.addEventListener('keydown',e=>{if(e.key==='Enter')save();if(e.key==='Escape')refreshItems();});input.addEventListener('blur',save);}
 
-  async function applySession(session){
-    user=session?.user||null;
-    auth.hidden=!!user;
-    app.hidden=!user;
-    if(user) await renderListTree();
-  }
-
+  async function applySession(session){user=session?.user||null;auth.hidden=!!user;app.hidden=!user;if(user) await renderListTree();}
   window.addEventListener('eb-auth-session', event => applySession(event.detail?.session));
 
   document.getElementById('newList').onclick=async()=>{const input=document.getElementById('listName'),name=input.value.trim();if(!name)return;const ordered=document.getElementById('listOrdered').checked;const position=allLists.filter(l=>!l.parent_list_id).length;const r=await supabase.from('lists').insert({name,owner_id:user.id,ordered,parent_list_id:null,position});if(r.error)return setStatus(r.error.message);input.value='';document.getElementById('listOrdered').checked=false;await renderListTree();};
   document.getElementById('newItem').onclick=async()=>{const input=document.getElementById('item'),text=input.value.trim();if(!text||!activeList)return;const latest=await supabase.from('list_items').select('position').eq('list_id',activeList.id).is('parent_id',null).order('position',{ascending:false}).limit(1);if(latest.error)return setStatus(latest.error.message);const position=(latest.data?.[0]?.position??-1)+1;const r=await supabase.from('list_items').insert({list_id:activeList.id,owner_id:user.id,text,position,parent_id:null});if(r.error)return setStatus(r.error.message);input.value='';await refreshItems();};
   document.getElementById('listOrderToggle').onclick=toggleListOrdered;
-  document.getElementById('infoNav').onclick=()=>selectApp('info');document.getElementById('listsNav').onclick=()=>selectApp('lists');document.getElementById('supportableNav').onclick=()=>selectApp('support');
-})();
+  document.getElementById('infoNav').onclick=()=>selectApp('info'); document.getElementById('listsNav').onclick=()=>selectApp('lists'); document.getElementById('supportableNav').onclick=()=>selectApp('support');
+
   supabase.auth.onAuthStateChange((_e,s)=>setTimeout(()=>applySession(s),0));
   supabase.auth.getSession().then(({data})=>applySession(data.session));
 })();
