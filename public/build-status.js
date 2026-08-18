@@ -7,23 +7,6 @@
   style.textContent = `.eb-tree-actions{opacity:1!important;visibility:visible!important}.eb-tree-action{border:1px solid transparent!important}.eb-tree-action:hover,.eb-tree-action:focus-visible{border-color:#8886!important;background:#8882!important;opacity:1!important}`;
   document.head.appendChild(style);
 
-  // Keep the header account controls directly synchronized with Supabase auth.
-  // The header should not depend on observing another element's text content.
-  const signInHeader = document.getElementById('signInHeader');
-  const signOut = document.getElementById('signOut');
-  const userLabel = document.getElementById('user');
-  const authClient = window.__ebSupabaseClient;
-  const syncAccount = (user) => {
-    const loggedIn = !!user;
-    if (userLabel) userLabel.textContent = user?.email || '';
-    if (signInHeader) signInHeader.hidden = loggedIn;
-    if (signOut) signOut.hidden = !loggedIn;
-  };
-  if (authClient?.auth) {
-    authClient.auth.getUser().then(({ data }) => syncAccount(data?.user || null));
-    authClient.auth.onAuthStateChange((_event, session) => syncAccount(session?.user || null));
-  }
-
   let currentVersion = null;
   let currentCommit = null;
 
