@@ -214,52 +214,13 @@
     import { loadEBlissTheme } from './theme-loader.js';
     await loadEBlissTheme();
   </script>
+  <script src="./auth.js"></script>
   <script src="./app.js"></script>
   <script src="./system-ui.js"></script>
   <script src="./template-dnd.js"></script>
   <script src="./tree-collapse.js"></script>
   <script src="./tree-dnd.js"></script>
   <script src="./build-status.js"></script>
-
-  <script>
-    (() => {
-      const db = window.supabase.createClient(
-        'https://zaabghrczrbqkxrhkinj.supabase.co',
-        'sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF'
-      );
-      const header = document.getElementById('header');
-      const account = document.getElementById('account');
-      const userEl = document.getElementById('user');
-      const auth = document.getElementById('auth');
-      const email = document.getElementById('email');
-
-      function render(session) {
-        header.hidden = false;
-        header.style.display = 'block';
-        account.hidden = false;
-
-        if (session?.user) {
-          userEl.textContent = session.user.email || '';
-          document.getElementById('headerSignIn')?.remove();
-          document.getElementById('signOut').hidden = false;
-        } else {
-          userEl.textContent = '';
-          document.getElementById('signOut').hidden = true;
-          if (!document.getElementById('headerSignIn')) {
-            const b = document.createElement('button');
-            b.id = 'headerSignIn';
-            b.type = 'button';
-            b.textContent = 'Sign in';
-            b.onclick = () => email?.focus();
-            account.appendChild(b);
-          }
-        }
-      }
-
-      db.auth.onAuthStateChange((_event, session) => render(session));
-      db.auth.getSession().then(({ data }) => render(data.session));
-    })();
-  </script>
 
   <script>
     (() => {
