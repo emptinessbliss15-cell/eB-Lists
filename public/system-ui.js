@@ -1,7 +1,5 @@
 (() => {
-  const SUPABASE_URL='https://zaabghrczrbqkxrhkinj.supabase.co';
-  const SUPABASE_KEY='sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF';
-  const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  const db=window.eB?.supabase;if(!db)throw new Error('Shared Supabase client is not available');
   const tree=document.getElementById('tree');
   if(!tree)return;
   const style=document.createElement('style');style.textContent=`.eb-system-break{border-top:1px solid #8886;margin:7px 4px 4px}.eb-system-node{display:flex;min-width:0}.eb-system-node button{width:100%;text-align:left;border:0;background:transparent;color:inherit;padding:4px 6px;margin:0;border-radius:3px;font-size:13px}.eb-system-node button:hover,.eb-system-node button[aria-current="true"]{background:#8882}.eb-system-view{padding:8px 0}.eb-system-view h3{margin:0 0 8px;font-size:16px}.eb-system-view .eb-system-card{border:1px solid #8886;border-radius:5px;padding:8px;margin:6px 0}.eb-system-view .eb-system-card h4{margin:0 0 5px;font-size:14px}.eb-system-view label{display:flex;align-items:center;gap:6px;margin:5px 0;font-size:13px}.eb-system-view input,.eb-system-view select{max-width:360px}.eb-template-field{display:flex;align-items:center;gap:6px;padding:4px 0;margin:2px 0;border-top:1px solid #8883}.eb-template-field input,.eb-template-field select{min-width:0;max-width:180px}.eb-template-actions{display:flex;gap:5px;align-items:center;margin-top:7px}.eb-x{width:24px;height:24px;padding:0!important;border:0;background:transparent;font-size:17px;line-height:1;cursor:pointer}.eb-x:hover{background:#8883;border-radius:3px}`;document.head.appendChild(style);
