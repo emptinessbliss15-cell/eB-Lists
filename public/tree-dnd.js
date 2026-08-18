@@ -1,5 +1,5 @@
 (() => {
-  const db=window.supabase.createClient('https://zaabghrczrbqkxrhkinj.supabase.co','sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF');
+  const db=window.eB?.supabase;if(!db)throw new Error('Shared Supabase client is not available');
   const style=document.createElement('style');style.textContent='.eb-tree-drag-handle{flex:0 0 20px;width:20px;padding:2px!important;border:0;background:transparent;color:inherit;cursor:grab;opacity:.65}.eb-tree-drag-handle:active{cursor:grabbing}.eb-tree-entry.eb-tree-dragging{opacity:.45}.eb-tree-entry.eb-tree-drop-before{border-top:2px solid currentColor}.eb-tree-entry.eb-tree-drop-after{border-bottom:2px solid currentColor}.eb-tree-entry.eb-tree-drop-child{outline:1px dashed currentColor;outline-offset:1px}.eb-tree-collapse{flex:0 0 20px;width:20px;padding:2px!important;border:0;background:transparent;color:inherit}.eb-tree-collapse:hover{background:#8883;border-radius:3px}';document.head.appendChild(style);
   let busy=false,enhanceTimer=null;
   const collapsed=new Set(JSON.parse(localStorage.getItem('eb-tree-collapsed')||'[]'));
