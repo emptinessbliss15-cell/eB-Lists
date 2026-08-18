@@ -1,5 +1,5 @@
 (() => {
-  const supabase = window.supabase.createClient('https://zaabghrczrbqkxrhkinj.supabase.co', 'sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF');
+  const supabase = window.eBAuth.supabase;
   const status = document.getElementById('status'), app = document.getElementById('app'), auth = document.getElementById('auth');
   const email = document.getElementById('email'), password = document.getElementById('password'), tree = document.getElementById('tree'), items = document.getElementById('items');
   let user = null, activeList = null, activeApp = 'lists', listFilter = 'all', allLists = [];
@@ -155,13 +155,17 @@
 
   function beginItemEdit(item,textEl){const input=document.createElement('input');input.value=item.text;input.className='eb-item-edit';textEl.replaceWith(input);input.focus();input.select();const save=async()=>{const text=input.value.trim();if(!text){refreshItems();return;}const r=await supabase.from('list_items').update({text}).eq('id',item.id).eq('owner_id',user.id);if(r.error)setStatus(r.error.message);await refreshItems();};input.addEventListener('keydown',e=>{if(e.key==='Enter')save();if(e.key==='Escape')refreshItems();});input.addEventListener('blur',save);}
 
-  async function applySession(session){user=session?.user||null;auth.hidden=!!user;app.hidden=!user;document.getElementById('user').textContent=user?.email||'';if(user)await renderListTree();}
-  document.getElementById('signIn').onclick=async()=>{const r=await supabase.auth.signInWithPassword({email:email.value.trim(),password:password.value});if(r.error)return setStatus(r.error.message);await applySession(r.data.session);};
-  document.getElementById('signUp').onclick=async()=>{const r=await supabase.auth.signUp({email:email.value.trim(),password:password.value});if(r.error)return setStatus(r.error.message);if(r.data.session)await applySession(r.data.session);else setStatus('Account created. Check your email if confirmation is required.');};
-  document.getElementById('signOut').onclick=async()=>{await supabase.auth.signOut({scope:'local'});activeList=null;document.getElementById('listView').hidden=true;document.getElementById('contentFrame').hidden=true;await applySession(null);};
+  async function applySession(session){
+    user=session?.user||null;
+    auth.hidden=!!user;
+    app.hidden=!user;
+    if(user) await renderListTree();
+  }
+
+  window.addEventListener('eb-auth-session', event => applySession(event.detail?.session));
+
   document.getElementById('newList').onclick=async()=>{const input=document.getElementById('listName'),name=input.value.trim();if(!name)return;const ordered=document.getElementById('listOrdered').checked;const position=allLists.filter(l=>!l.parent_list_id).length;const r=await supabase.from('lists').insert({name,owner_id:user.id,ordered,parent_list_id:null,position});if(r.error)return setStatus(r.error.message);input.value='';document.getElementById('listOrdered').checked=false;await renderListTree();};
   document.getElementById('newItem').onclick=async()=>{const input=document.getElementById('item'),text=input.value.trim();if(!text||!activeList)return;const latest=await supabase.from('list_items').select('position').eq('list_id',activeList.id).is('parent_id',null).order('position',{ascending:false}).limit(1);if(latest.error)return setStatus(latest.error.message);const position=(latest.data?.[0]?.position??-1)+1;const r=await supabase.from('list_items').insert({list_id:activeList.id,owner_id:user.id,text,position,parent_id:null});if(r.error)return setStatus(r.error.message);input.value='';await refreshItems();};
   document.getElementById('listOrderToggle').onclick=toggleListOrdered;
   document.getElementById('infoNav').onclick=()=>selectApp('info');document.getElementById('listsNav').onclick=()=>selectApp('lists');document.getElementById('supportableNav').onclick=()=>selectApp('support');
-  supabase.auth.onAuthStateChange((_e,s)=>applySession(s));supabase.auth.getSession().then(({data})=>applySession(data.session));
 })();
