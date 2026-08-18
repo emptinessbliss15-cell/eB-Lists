@@ -169,3 +169,6 @@
   document.getElementById('listOrderToggle').onclick=toggleListOrdered;
   document.getElementById('infoNav').onclick=()=>selectApp('info');document.getElementById('listsNav').onclick=()=>selectApp('lists');document.getElementById('supportableNav').onclick=()=>selectApp('support');
 })();
+  supabase.auth.onAuthStateChange((_e,s)=>setTimeout(()=>applySession(s),0));
+  supabase.auth.getSession().then(({data})=>applySession(data.session));
+})();
