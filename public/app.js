@@ -158,4 +158,13 @@
 
   supabase.auth.onAuthStateChange((_e,s)=>setTimeout(()=>applySession(s),0));
   supabase.auth.getSession().then(({data})=>applySession(data.session));
+
+  // Standalone Lists no longer owns the application rail.
+  const removeAppRail = () => {
+    document.getElementById('appRail')?.remove();
+    const navigation = document.querySelector('.eb-navigation');
+    if (navigation) navigation.style.gridTemplateColumns = 'var(--tree-width,220px) 6px minmax(0,1fr)';
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', removeAppRail, { once: true });
+  else removeAppRail();
 })();
