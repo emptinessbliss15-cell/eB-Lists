@@ -16,7 +16,6 @@ button{cursor:pointer}
 .ordered-items{list-style-type:decimal}
 .cf-build-status{font-size:12px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .cf-build-dot{font-size:11px}
-.app-icon-label{font-size:10px;line-height:1.1}
 </style>
 </head>
 <body>
@@ -34,17 +33,6 @@ button{cursor:pointer}
     </div>
   </header>
   <div class="eb-navigation">
-    <nav id="appRail" class="eb-app-rail" aria-label="Applications">
-      <button class="eb-app-button" id="infoNav" title="Info" aria-label="Info">
-        <span aria-hidden="true">ⓘ</span><span class="app-icon-label">Info</span>
-      </button>
-      <button class="eb-app-button" id="listsNav" title="Lists" aria-label="Lists" aria-current="true">
-        <span aria-hidden="true">☷</span><span class="app-icon-label">Lists</span>
-      </button>
-      <button class="eb-app-button" id="supportableNav" title="Supportable" aria-label="Supportable">
-        <span aria-hidden="true">◉</span><span class="app-icon-label">Support</span>
-      </button>
-    </nav>
     <nav id="tree" class="eb-tree" aria-label="Context"></nav>
     <main class="eb-main">
       <div id="subheader" class="eb-subheader" style="margin:-8px -8px 8px"></div>
@@ -74,16 +62,6 @@ button{cursor:pointer}
 <script type="module">
   import { loadEBlissTheme } from './theme-loader.js';
   await loadEBlissTheme();
-
-  document.getElementById('infoNav').onclick = () => {
-    document.getElementById('status').textContent = 'eB Lists — shared ordered and unordered lists.';
-  };
-  document.getElementById('listsNav').onclick = () => {
-    document.getElementById('status').textContent = '';
-  };
-  document.getElementById('supportableNav').onclick = () => {
-    document.getElementById('status').textContent = 'Supportable — support interface coming next.';
-  };
 </script>
 <script src="./app.js"></script>
 </body>
