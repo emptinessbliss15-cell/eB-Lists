@@ -43,7 +43,7 @@ import { Grid } from './lib/Grid.js';
         input.addEventListener('change', () => updateItemField(row, 'completed', input.checked));
         return input;
       }},
-      { key: 'actions', label: 'Actions' }
+      { key: 'actions', label: 'Actions', render: value => value }
     ]
   };
 
