@@ -7,6 +7,7 @@ import { Grid } from './lib/Grid.js';
   let user = null, activeList = null, allLists = [];
   let treeInitialized = false;
   let realtimeChannel = null;
+  let tabulatorGrid = null;
   const setStatus = text => status.textContent = text || '';
 
   const treeView = new Tree({ container: tree, getId: node => node.id, getParentId: node => node.parent_list_id ?? null, renderNode: (node, context) => treeButton(node, context.depth, context) });
@@ -21,28 +22,9 @@ import { Grid } from './lib/Grid.js';
     name: 'Item',
     fields: [
       { key: 'text', label: 'Item', render: (value, row) => {
-        const input = document.createElement('input');
-        input.className = 'eb-grid-edit';
-        input.value = value || '';
-        input.setAttribute('aria-label', 'Item text');
-        input.addEventListener('click', e => e.stopPropagation());
-        input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
-        input.addEventListener('blur', () => {
-          const next = input.value.trim();
-          if (next && next !== (row.text || '')) updateItemField(row, 'text', next);
-          else input.value = row.text || '';
-        });
-        return input;
+        const input = document.createElement('input'); input.className = 'eb-grid-edit'; input.value = value || ''; input.setAttribute('aria-label', 'Item text'); input.addEventListener('click', e => e.stopPropagation()); input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); }); input.addEventListener('blur', () => { const next = input.value.trim(); if (next && next !== (row.text || '')) updateItemField(row, 'text', next); else input.value = row.text || ''; }); return input;
       }},
-      { key: 'completed', label: 'Done', render: (value, row) => {
-        const input = document.createElement('input');
-        input.type = 'checkbox';
-        input.checked = !!value;
-        input.setAttribute('aria-label', 'Completed');
-        input.addEventListener('click', e => e.stopPropagation());
-        input.addEventListener('change', () => updateItemField(row, 'completed', input.checked));
-        return input;
-      }},
+      { key: 'completed', label: 'Done', render: (value, row) => { const input = document.createElement('input'); input.type = 'checkbox'; input.checked = !!value; input.setAttribute('aria-label', 'Completed'); input.addEventListener('click', e => e.stopPropagation()); input.addEventListener('change', () => updateItemField(row, 'completed', input.checked)); return input; }},
       { key: 'actions', label: 'Actions', render: value => value }
     ]
   };
@@ -72,23 +54,13 @@ import { Grid } from './lib/Grid.js';
   async function deleteItem(item){if(!confirm(`Delete “${item.text}”?`))return;const r=await supabase.from('list_items').delete().eq('id',item.id).eq('owner_id',user.id);if(r.error)return setStatus(r.error.message);await refreshItems();}
   async function renameItem(item){const text=prompt('Edit item text:',item.text);if(text===null||!text.trim())return;await updateItemField(item,'text',text.trim());}
   function itemActions(item){const wrap=document.createElement('div');wrap.className='eb-grid-actions';wrap.append(actionButton('+','Add child item',()=>addChildItem(item)),actionButton('↑','Move up',()=>moveItem(item,-1)),actionButton('↓','Move down',()=>moveItem(item,1)),actionButton('×','Delete item',()=>deleteItem(item)));return wrap;}
-  async function refreshItems(){if(!activeList){setStatus('Select a list to refresh its grid.');return;}const{data,error}=await supabase.from('list_items').select('*').eq('list_id',activeList.id).order('position').order('created_at');if(error){setStatus(error.message);return;}grid.setRows((data||[]).map(item=>({...item,completed:!!item.completed,actions:itemActions(item)})));setStatus('');}
+  function renderTabulator(rows){const host=document.getElementById('tabulatorGrid'),experiment=document.getElementById('tabulatorExperiment');if(!host||!window.Tabulator)return;if(!tabulatorGrid){experiment.hidden=false;tabulatorGrid=new Tabulator(host,{layout:'fitColumns',height:'220px',resizableColumnFit:true,resizableColumnGuide:true,movableColumns:true,columns:[{title:'Item',field:'text',width:300,minWidth:140,resizable:true},{title:'Done',field:'completed',width:80,minWidth:70,hozAlign:'center',formatter:'tickCross',resizable:true},{title:'Actions',field:'actionsText',width:120,minWidth:100,resizable:true}],data:rows.map(row=>({...row,actionsText:'+  ↑  ↓  ×'}))});return;}tabulatorGrid.setData(rows.map(row=>({...row,actionsText:'+  ↑  ↓  ×'})));}
+  async function refreshItems(){if(!activeList){setStatus('Select a list to refresh its grid.');return;}const{data,error}=await supabase.from('list_items').select('*').eq('list_id',activeList.id).order('position').order('created_at');if(error){setStatus(error.message);return;}const rows=data||[];grid.setRows(rows.map(item=>({...item,completed:!!item.completed,actions:itemActions(item)})));renderTabulator(rows);setStatus('');}
 
   async function subscribeToActiveList(){
     if (realtimeChannel) { await supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
     if (!activeList) return;
-    realtimeChannel = supabase
-      .channel(`eb-lists-items-${activeList.id}`)
-      .on('postgres_changes',{event:'*',schema:'public',table:'list_items',filter:`list_id=eq.${activeList.id}`},payload=>{
-        if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT' || payload.eventType === 'DELETE') refreshItems();
-      })
-      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'lists',filter:`id=eq.${activeList.id}`},payload=>{
-        if (payload.new) { activeList = {...activeList,...payload.new}; showActiveListName(); document.getElementById('listMode').textContent=activeList.ordered?'Ordered':'Unordered'; document.getElementById('listOrderToggle').textContent=activeList.ordered?'Ordered':'Unordered'; renderListTree(); }
-      })
-      .subscribe((state, error) => {
-        if (state === 'SUBSCRIBED') setStatus('');
-        else if (state === 'CHANNEL_ERROR' || error) setStatus('Realtime unavailable; refresh to see remote changes.');
-      });
+    realtimeChannel = supabase.channel(`eb-lists-items-${activeList.id}`).on('postgres_changes',{event:'*',schema:'public',table:'list_items',filter:`list_id=eq.${activeList.id}`},payload=>{if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT' || payload.eventType === 'DELETE') refreshItems();}).on('postgres_changes',{event:'UPDATE',schema:'public',table:'lists',filter:`id=eq.${activeList.id}`},payload=>{if (payload.new) { activeList = {...activeList,...payload.new}; showActiveListName(); document.getElementById('listMode').textContent=activeList.ordered?'Ordered':'Unordered'; document.getElementById('listOrderToggle').textContent=activeList.ordered?'Ordered':'Unordered'; renderListTree(); }}).subscribe((state, error) => {if (state === 'SUBSCRIBED') setStatus(''); else if (state === 'CHANNEL_ERROR' || error) setStatus('Realtime unavailable; refresh to see remote changes.');});
   }
 
   window.eBLists={refreshTree:renderListTree,refreshList:refreshItems};
