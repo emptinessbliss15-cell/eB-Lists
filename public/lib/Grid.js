@@ -41,13 +41,17 @@ export class Grid {
 
   render() {
     this.container.replaceChildren();
+    const blue = getComputedStyle(document.documentElement).getPropertyValue('--eb-accent').trim() || '#5b5bd6';
     const table = document.createElement('table');
     table.className = 'eb-grid';
+    table.style.cssText = `width:100%;border-collapse:collapse;border:1px solid ${blue};`;
+
     const head = document.createElement('thead');
     const headerRow = document.createElement('tr');
     for (const column of this.columns) {
       const th = document.createElement('th');
       th.textContent = column.label ?? column.key ?? '';
+      th.style.border = `1px solid ${blue}`;
       headerRow.append(th);
     }
     head.append(headerRow);
@@ -73,12 +77,14 @@ export class Grid {
             tr.append(td);
           }
         }
+        for (const cell of tr.children) cell.style.border = `1px solid ${blue}`;
         body.append(tr);
         continue;
       }
 
       for (const column of this.columns) {
         const td = document.createElement('td');
+        td.style.border = `1px solid ${blue}`;
         const value = row?.[column.key];
         const rendered = column.render
           ? column.render(value, row)
