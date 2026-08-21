@@ -15,32 +15,27 @@ export class TreeViewModel extends ViewModel {
     const next = Array.isArray(nodes) ? [...nodes] : [];
     const validIds = new Set(next.map(this.getId));
     const expandedIds = new Set([...this.state.expandedIds].filter(id => validIds.has(id)));
-    this.setState({ nodes: next, expandedIds });
+    this.set({ nodes: next, expandedIds });
   }
 
   node(id) { return this.state.nodes.find(node => this.getId(node) === id) ?? null; }
-
-  children(parentId = null) {
-    return this.state.nodes.filter(node => this.getParentId(node) === parentId);
-  }
-
+  children(parentId = null) { return this.state.nodes.filter(node => this.getParentId(node) === parentId); }
   hasChildren(id) { return this.children(id).length > 0; }
-
   isExpanded(id) { return this.state.expandedIds.has(id); }
 
   toggle(id) {
     const expandedIds = new Set(this.state.expandedIds);
     if (expandedIds.has(id)) expandedIds.delete(id); else expandedIds.add(id);
-    this.setState({ expandedIds });
+    this.set({ expandedIds });
   }
 
-  select(id) { this.setState({ selectedId: id }); }
+  select(id) { this.set({ selectedId: id }); }
 
   expandAll() {
-    this.setState({ expandedIds: new Set(this.state.nodes.filter(node => this.hasChildren(this.getId(node))).map(this.getId)) });
+    this.set({ expandedIds: new Set(this.state.nodes.filter(node => this.hasChildren(this.getId(node))).map(this.getId)) });
   }
 
-  collapseAll() { this.setState({ expandedIds: new Set() }); }
+  collapseAll() { this.set({ expandedIds: new Set() }); }
 }
 
 window.eB = window.eB || {};
