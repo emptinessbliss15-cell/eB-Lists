@@ -27,33 +27,44 @@
     button.onclick=async event=>{event.stopPropagation();const api=getListsApi();if(typeof api.refreshList!=='function')return;button.disabled=true;try{await api.refreshList();}finally{button.disabled=false;}};
     row.append(button);view.prepend(row);
   }
-  let currentVersion=null;
+  let currentFingerprint=null;
   let reloadScheduled=false;
+  let checking=false;
+  const WATCH_FILES=['/','/public/app.js','/public/build-status.js'];
+  async function digest(text){
+    const bytes=new TextEncoder().encode(text);
+    const hash=await crypto.subtle.digest('SHA-256',bytes);
+    return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,8);
+  }
+  async function getDeploymentFingerprint(){
+    const parts=[];
+    for(const path of WATCH_FILES){
+      const response=await fetch(`${path}?__cf_watch=${Date.now()}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
+      if(!response.ok)throw new Error(`${path}: HTTP ${response.status}`);
+      const text=await response.text();
+      parts.push(`${path}:${await digest(text)}`);
+    }
+    return parts.join('|');
+  }
   async function refreshBuildStatus(){
-    if(reloadScheduled)return;
+    if(reloadScheduled||checking)return;
+    checking=true;
     try{
-      const response=await fetch('/__build',{cache:'no-store'});
-      if(!response.ok)throw new Error(`HTTP ${response.status}`);
-      const build=await response.json();
-      const version=build.version||build.tag||build.gitCommit||null;
-      const commit=build.gitCommit||build.tag||null;
-      const branch=build.gitBranch||(location.hostname.includes('dev')?'dev':'main');
-      const shortCommit=commit?commit.slice(0,8):'unknown';
-      const deployed=build.timestamp?new Date(build.timestamp).toLocaleString():'';
-      const details=[`Branch ${branch}`,`Commit ${commit||'not exposed'}`,`Status ${build.status||'live'}`];
-      if(deployed)details.push(`Deployed ${deployed}`);
-      details.push('Watcher checks every 5 seconds');
-      if(currentVersion&&version&&version!==currentVersion){
+      const fingerprint=await getDeploymentFingerprint();
+      const shortFingerprint=await digest(fingerprint);
+      const branch=location.hostname.includes('dev')?'dev':'main';
+      const details=[`Branch ${branch}`,`Deployment fingerprint ${shortFingerprint}`,`Watcher checks every 5 seconds`,`Detection uses live application assets`];
+      if(currentFingerprint&&fingerprint!==currentFingerprint){
         reloadScheduled=true;
-        setStatus(`⚡ NEW DEPLOYMENT DETECTED · ${shortCommit}`,`NEW DEPLOYMENT DETECTED\n${details.join('\n')}\nRefreshing in 1 second…`);
+        setStatus(`⚡ NEW DEPLOYMENT DETECTED · ${shortFingerprint}`,`NEW DEPLOYMENT DETECTED\n${details.join('\n')}\nRefreshing in 1 second…`);
         window.setTimeout(()=>{setStatus('↻ REFRESHING…','Loading the new Cloudflare deployment…');window.setTimeout(()=>window.location.reload(),350);},650);
         return;
       }
-      currentVersion=version;
-      setStatus(`● CF LIVE · ${branch} · ${shortCommit}`,details.join('\n'));
+      currentFingerprint=fingerprint;
+      setStatus(`● CF LIVE · ${branch} · ${shortFingerprint}`,details.join('\n'));
     }catch(error){
       setStatus('○ CF WATCHER OFFLINE',`Cloudflare watcher unavailable: ${error.message}\nThe application itself may still be running.`,true);
-    }
+    }finally{checking=false;}
   }
   const observer=new MutationObserver(()=>{installTreeRefresh();installListRefresh();removeLegacyHelpText();});
   observer.observe(document.body,{childList:true,subtree:true});
