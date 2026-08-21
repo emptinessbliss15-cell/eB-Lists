@@ -15,24 +15,17 @@
     window.location.reload();
   }, true);
 
-  function getListsApi() {
-    return { renderListTree: window.renderListTree, refreshItems: window.refreshItems };
-  }
+  function getListsApi() { return window.eBLists || {}; }
 
   function installTreeRefresh() {
     if (!tree.isConnected || tree.querySelector('#treeDbRefresh')) return;
     const button = document.createElement('button');
-    button.id = 'treeDbRefresh';
-    button.className = 'eb-db-refresh eb-tree-refresh';
-    button.type = 'button';
-    button.title = 'Refresh Lists tree from database';
-    button.textContent = '↻ Lists';
+    button.id = 'treeDbRefresh'; button.className = 'eb-db-refresh eb-tree-refresh'; button.type = 'button';
+    button.title = 'Refresh Lists tree from database'; button.textContent = '↻ Lists';
     button.onclick = async event => {
       event.stopPropagation();
-      const api = getListsApi();
-      if (typeof api.renderListTree !== 'function') return;
-      button.disabled = true;
-      try { await api.renderListTree(); } finally { button.disabled = false; }
+      const api = getListsApi(); if (typeof api.refreshTree !== 'function') return;
+      button.disabled = true; try { await api.refreshTree(); } finally { button.disabled = false; }
     };
     tree.prepend(button);
   }
@@ -40,60 +33,33 @@
   function installListRefresh() {
     const view = document.getElementById('listView');
     if (!view || view.querySelector('#listDbRefreshRow')) return;
-    const row = document.createElement('div');
-    row.id = 'listDbRefreshRow';
-    row.className = 'eb-list-refresh-row';
-    const button = document.createElement('button');
-    button.id = 'listDbRefresh';
-    button.type = 'button';
-    button.title = 'Refresh current list from database';
-    button.textContent = '↻';
-    button.setAttribute('aria-label', 'Refresh current list from database');
+    const row = document.createElement('div'); row.id = 'listDbRefreshRow'; row.className = 'eb-list-refresh-row';
+    const button = document.createElement('button'); button.id = 'listDbRefresh'; button.type = 'button';
+    button.title = 'Refresh current list from database'; button.textContent = '↻'; button.setAttribute('aria-label', 'Refresh current list from database');
     button.onclick = async event => {
       event.stopPropagation();
-      const api = getListsApi();
-      if (typeof api.refreshItems !== 'function') return;
-      button.disabled = true;
-      try { await api.refreshItems(); } finally { button.disabled = false; }
+      const api = getListsApi(); if (typeof api.refreshList !== 'function') return;
+      button.disabled = true; try { await api.refreshList(); } finally { button.disabled = false; }
     };
-    row.append(button);
-    view.prepend(row);
+    row.append(button); view.prepend(row);
   }
 
   let currentVersion = null;
   let currentCommit = null;
   async function refreshBuildStatus() {
     try {
-      const response = await fetch('/__build', { cache: 'no-store' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const build = await response.json();
-      const version = build.version || build.tag || null;
-      const commit = build.gitCommit || build.tag || null;
+      const response = await fetch('/__build', { cache: 'no-store' }); if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const build = await response.json(); const version = build.version || build.tag || null; const commit = build.gitCommit || build.tag || null;
       const branch = build.gitBranch || (location.hostname.includes('dev') ? 'dev' : 'main');
-      if (currentVersion && version && version !== currentVersion) {
-        badge.textContent = '● UPDATED';
-        badge.title = `New Cloudflare deployment: ${version}`;
-        window.setTimeout(() => window.location.reload(), 700);
-        return;
-      }
-      currentVersion = version;
-      currentCommit = commit;
-      const shortCommit = commit ? commit.slice(0, 8) : 'unknown';
-      const shortVersion = version ? version.slice(0, 8) : 'unknown';
+      if (currentVersion && version && version !== currentVersion) { badge.textContent = '● UPDATED'; badge.title = `New Cloudflare deployment: ${version}`; window.setTimeout(() => window.location.reload(), 700); return; }
+      currentVersion = version; currentCommit = commit;
+      const shortCommit = commit ? commit.slice(0, 8) : 'unknown'; const shortVersion = version ? version.slice(0, 8) : 'unknown';
       badge.textContent = `● CF LIVE · ${branch} · ${shortCommit}`;
       badge.title = `Cloudflare build ${shortVersion}\nGit commit ${commit || 'not exposed by environment'}\nBranch ${branch}${build.timestamp ? `\nDeployed ${new Date(build.timestamp).toLocaleString()}` : ''}`;
       badge.classList.remove('is-error');
-    } catch (error) {
-      badge.textContent = '○ CF';
-      badge.title = `Cloudflare status unavailable: ${error.message}`;
-      badge.classList.add('is-error');
-    }
+    } catch (error) { badge.textContent = '○ CF'; badge.title = `Cloudflare status unavailable: ${error.message}`; badge.classList.add('is-error'); }
   }
 
   const observer = new MutationObserver(() => { installTreeRefresh(); installListRefresh(); });
-  observer.observe(document.body, { childList: true, subtree: true });
-  installTreeRefresh();
-  installListRefresh();
-  refreshBuildStatus();
-  window.setInterval(refreshBuildStatus, 5000);
+  observer.observe(document.body, { childList: true, subtree: true }); installTreeRefresh(); installListRefresh(); refreshBuildStatus(); window.setInterval(refreshBuildStatus, 5000);
 })();
