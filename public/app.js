@@ -1,4 +1,5 @@
 import { Tree } from './lib/Tree.js';
+import { Grid } from './lib/Grid.js';
 
 (() => {
   const supabase = window.eB.supabase;
@@ -21,6 +22,28 @@ import { Tree } from './lib/Tree.js';
     renderNode: (node, context) => treeButton(node, context.depth, context)
   });
   window.eBListsTree = treeView;
+
+  const gridContainer = document.createElement('div');
+  gridContainer.id = 'listGrid';
+  gridContainer.className = 'eb-grid-container';
+  items.replaceWith(gridContainer);
+  const grid = new Grid({
+    container: gridContainer,
+    columns: [
+      { key: 'text', label: 'Item' },
+      { key: 'completed', label: 'Done' }
+    ],
+    renderCell: (value, row, column) => {
+      if (column.key === 'text') {
+        const span = document.createElement('span');
+        span.textContent = value || '';
+        span.className = row.completed ? 'eb-item-text completed' : 'eb-item-text';
+        return span;
+      }
+      return value ? '✓' : '';
+    }
+  });
+  window.eBListsGrid = grid;
 
   function syncHeaderSession(session) {
     const current = session?.user || null;
@@ -107,26 +130,9 @@ import { Tree } from './lib/Tree.js';
     return true;
   }
 
-  async function moveList(list,direction){
-    const siblings=allLists.filter(l=>(l.parent_list_id||null)===(list.parent_list_id||null)).sort((a,b)=>a.position-b.position || String(a.id).localeCompare(String(b.id)));
-    const index=siblings.findIndex(l=>l.id===list.id), target=index+direction;
-    if(index<0||target<0||target>=siblings.length)return;
-    const reordered=[...siblings]; const [moved]=reordered.splice(index,1); reordered.splice(target,0,moved);
-    if(!await persistListOrder(reordered))return;
-    await renderListTree();
-  }
+  async function moveList(list,direction){const siblings=allLists.filter(l=>(l.parent_list_id||null)===(list.parent_list_id||null)).sort((a,b)=>a.position-b.position || String(a.id).localeCompare(String(b.id))); const index=siblings.findIndex(l=>l.id===list.id), target=index+direction; if(index<0||target<0||target>=siblings.length)return; const reordered=[...siblings]; const [moved]=reordered.splice(index,1); reordered.splice(target,0,moved); if(!await persistListOrder(reordered))return; await renderListTree();}
 
-  async function moveListToTarget(list,target){
-    if(!list||!target||list.id===target.id)return;
-    const sameParent=(list.parent_list_id||null)===(target.parent_list_id||null);
-    if(!sameParent){setStatus('Drag/drop currently moves within the same tree level.');return;}
-    const siblings=allLists.filter(l=>(l.parent_list_id||null)===(list.parent_list_id||null)).sort((a,b)=>a.position-b.position || String(a.id).localeCompare(String(b.id)));
-    const from=siblings.findIndex(l=>l.id===list.id), to=siblings.findIndex(l=>l.id===target.id);
-    if(from<0||to<0)return;
-    const reordered=[...siblings]; const [moved]=reordered.splice(from,1); reordered.splice(to,0,moved);
-    if(!await persistListOrder(reordered))return;
-    await renderListTree();
-  }
+  async function moveListToTarget(list,target){if(!list||!target||list.id===target.id)return; const sameParent=(list.parent_list_id||null)===(target.parent_list_id||null); if(!sameParent){setStatus('Drag/drop currently moves within the same tree level.');return;} const siblings=allLists.filter(l=>(l.parent_list_id||null)===(list.parent_list_id||null)).sort((a,b)=>a.position-b.position || String(a.id).localeCompare(String(b.id))); const from=siblings.findIndex(l=>l.id===list.id), to=siblings.findIndex(l=>l.id===target.id); if(from<0||to<0)return; const reordered=[...siblings]; const [moved]=reordered.splice(from,1); reordered.splice(to,0,moved); if(!await persistListOrder(reordered))return; await renderListTree();}
 
   treeView.on('move', ({ node, target }) => moveListToTarget(node, target));
 
@@ -135,44 +141,21 @@ import { Tree } from './lib/Tree.js';
   function beginRename(){if(!activeList||document.getElementById('activeListEdit'))return;const title=document.getElementById('activeList');title.innerHTML='';const input=document.createElement('input');input.id='activeListEdit';input.value=activeList.name;title.appendChild(input);input.focus();input.select();input.addEventListener('keydown',e=>{if(e.key==='Enter')renameActiveList();if(e.key==='Escape')showActiveListName();});input.addEventListener('blur',renameActiveList);}
   async function renameActiveList(){if(!activeList)return;const input=document.getElementById('activeListEdit'),name=input.value.trim();if(!name)return;const r=await supabase.from('lists').update({name}).eq('id',activeList.id).eq('owner_id',user.id);if(r.error)return setStatus(r.error.message);activeList.name=name;showActiveListName();await renderListTree();}
   async function toggleListOrdered(){if(!activeList)return; const ordered=!activeList.ordered; const r=await supabase.from('lists').update({ordered}).eq('id',activeList.id).eq('owner_id',user.id); if(r.error)return setStatus(r.error.message); activeList.ordered=ordered; document.getElementById('listMode').textContent=ordered?'Ordered':'Unordered'; document.getElementById('listOrderToggle').textContent=ordered?'Ordered':'Unordered'; await renderListTree(); await refreshItems();}
-  async function openList(list){
-    activeApp='lists';
-    activeList={...list};
-    document.getElementById('contentFrame').hidden=true;
-    document.getElementById('listWorkspace').hidden=false;
-    document.getElementById('appTitle').textContent='Lists';
-    document.getElementById('listView').hidden=false;
-    showActiveListName();
-    document.getElementById('listMode').textContent=list.ordered?'Ordered':'Unordered';
-    document.getElementById('listOrderToggle').textContent=list.ordered?'Ordered':'Unordered';
-    treeView.selectedId=list.id;
-    await renderListTree();
-    await refreshItems();
-  }
-  async function moveItem(item,direction){const {data,error}=await supabase.from('list_items').select('*').eq('list_id',activeList.id).order('position').order('created_at'); if(error)return setStatus(error.message); const index=data.findIndex(x=>x.id===item.id), target=index+direction; if(index<0||target<0||target>=data.length)return; const other=data[target]; let r=await supabase.from('list_items').update({position:other.position}).eq('id',item.id).eq('owner_id',user.id); if(r.error)return setStatus(r.error.message); r=await supabase.from('list_items').update({position:item.position}).eq('id',other.id).eq('owner_id',user.id); if(r.error)return setStatus(r.error.message); await refreshItems();}
-  async function addChildItem(parent){const text=prompt(`Add child item to “${parent.text}”:`); if(!text?.trim())return; const siblings=await supabase.from('list_items').select('position').eq('list_id',activeList.id).eq('parent_id',parent.id).order('position',{ascending:false}).limit(1); if(siblings.error)return setStatus(siblings.error.message); const position=(siblings.data?.[0]?.position??-1)+1; const r=await supabase.from('list_items').insert({list_id:activeList.id,owner_id:user.id,text:text.trim(),position,parent_id:parent.id}); if(r.error)return setStatus(r.error.message); await refreshItems();}
-  async function refreshItems(){if(!activeList)return;const {data,error}=await supabase.from('list_items').select('*').eq('list_id',activeList.id).order('position').order('created_at');if(error)return setStatus(error.message);items.innerHTML='';const roots=(data||[]).filter(item=>!item.parent_id);const children=new Map();(data||[]).forEach(item=>{if(item.parent_id){if(!children.has(item.parent_id))children.set(item.parent_id,[]);children.get(item.parent_id).push(item);}});const renderItem=(item,depth=0)=>{const index=data.findIndex(x=>x.id===item.id);const li=document.createElement('li');li.className='eb-item-row';const main=document.createElement('div');main.className='eb-item-main';main.style.paddingLeft=(depth*20)+'px';const toggle=document.createElement('button');toggle.type='button';toggle.className='eb-item-icon secondary';toggle.title=item.completed?'Mark incomplete':'Mark complete';toggle.setAttribute('aria-label',toggle.title);toggle.textContent=item.completed?'✓':'○';toggle.onclick=async()=>{const r=await supabase.from('list_items').update({completed:!item.completed}).eq('id',item.id);if(r.error)setStatus(r.error.message);else refreshItems();};const text=document.createElement('span');text.className=item.completed?'eb-item-text completed':'eb-item-text';text.textContent=item.text;main.append(toggle,text);const actions=document.createElement('div');actions.className='eb-item-actions';const add=document.createElement('button');add.type='button';add.className='eb-item-action secondary';add.title='Add child item';add.setAttribute('aria-label','Add child item');add.textContent='+';add.onclick=()=>addChildItem(item);actions.append(add);if(activeList.ordered){const up=document.createElement('button');up.type='button';up.className='eb-item-action secondary';up.textContent='↑';up.title='Move up';up.disabled=index===0;up.onclick=()=>moveItem(item,-1);const down=document.createElement('button');down.type='button';down.className='eb-item-action secondary';down.textContent='↓';down.title='Move down';down.disabled=index===data.length-1;down.onclick=()=>moveItem(item,1);actions.append(up,down);}const edit=document.createElement('button');edit.type='button';edit.className='eb-item-action secondary';edit.title='Edit item';edit.setAttribute('aria-label','Edit item');edit.textContent='✎';const del=document.createElement('button');del.type='button';del.className='eb-item-action secondary';del.title='Delete item';del.setAttribute('aria-label','Delete item');del.textContent='×';edit.onclick=()=>beginItemEdit(item,text);del.onclick=async()=>{if(!confirm('Delete this item?'))return;const r=await supabase.from('list_items').delete().eq('id',item.id).eq('owner_id',user.id);if(r.error)setStatus(r.error.message);else refreshItems();};actions.append(edit,del);li.append(main,actions);items.appendChild(li);(children.get(item.id)||[]).sort((a,b)=>a.position-b.position).forEach(child=>renderItem(child,depth+1));};roots.sort((a,b)=>a.position-b.position).forEach(item=>renderItem(item));}
-  function beginItemEdit(item,textEl){const input=document.createElement('input');input.value=item.text;input.className='eb-item-edit';textEl.replaceWith(input);input.focus();input.select();const save=async()=>{const text=input.value.trim();if(!text){refreshItems();return;}const r=await supabase.from('list_items').update({text}).eq('id',item.id).eq('owner_id',user.id);if(r.error)setStatus(r.error.message);await refreshItems();};input.addEventListener('keydown',e=>{if(e.key==='Enter')save();if(e.key==='Escape')refreshItems();});input.addEventListener('blur',save);}
+  async function openList(list){activeApp='lists'; activeList={...list}; document.getElementById('contentFrame').hidden=true; document.getElementById('listWorkspace').hidden=false; document.getElementById('appTitle').textContent='Lists'; document.getElementById('listView').hidden=false; showActiveListName(); document.getElementById('listMode').textContent=list.ordered?'Ordered':'Unordered'; document.getElementById('listOrderToggle').textContent=list.ordered?'Ordered':'Unordered'; treeView.selectedId=list.id; await renderListTree(); await refreshItems();}
 
-  window.eBLists = { refreshTree: renderListTree, refreshList: refreshItems };
-  window.addEventListener('eb:refresh-tree', () => renderListTree());
-  window.addEventListener('eb:refresh-list', () => refreshItems());
+  async function moveItem(item,direction){const {data,error}=await supabase.from('list_items').select('*').eq('list_id',activeList.id).order('position').order('created_at');if(error)return setStatus(error.message);const index=data.findIndex(x=>x.id===item.id),target=index+direction;if(index<0||target<0||target>=data.length)return;const other=data[target];let r=await supabase.from('list_items').update({position:other.position}).eq('id',item.id).eq('owner_id',user.id);if(r.error)return setStatus(r.error.message);r=await supabase.from('list_items').update({position:item.position}).eq('id',other.id).eq('owner_id',user.id);if(r.error)return setStatus(r.error.message);await refreshItems();}
+  async function addChildItem(parent){const text=prompt(`Add child item to “${parent.text}”:`);if(!text?.trim())return;const siblings=await supabase.from('list_items').select('position').eq('list_id',activeList.id).eq('parent_id',parent.id).order('position',{ascending:false}).limit(1);if(siblings.error)return setStatus(siblings.error.message);const position=(siblings.data?.[0]?.position??-1)+1;const r=await supabase.from('list_items').insert({list_id:activeList.id,owner_id:user.id,text:text.trim(),position,parent_id:parent.id});if(r.error)return setStatus(r.error.message);await refreshItems();}
+  async function refreshItems(){if(!activeList)return;const {data,error}=await supabase.from('list_items').select('*').eq('list_id',activeList.id).order('position').order('created_at');if(error)return setStatus(error.message);const listData=data||[];grid.setRows(listData.map(item=>({...item,completed:!!item.completed})));}
 
-  async function applySession(session){
-    user=session?.user||null;
-    syncHeaderSession(session);
-    auth.hidden=!!user;
-    app.hidden=!user;
-    if(user) await renderListTree();
-  }
-  window.addEventListener('eb-auth-session', event => applySession(event.detail?.session));
+  window.eBLists={refreshTree:renderListTree,refreshList:refreshItems};
+  window.addEventListener('eb:refresh-tree',()=>renderListTree());
+  window.addEventListener('eb:refresh-list',()=>refreshItems());
+  window.addEventListener('eb:auth-user',e=>{user=e.detail?.user||null;if(user)renderListTree();});
 
-  document.getElementById('newList').onclick=async()=>{const input=document.getElementById('listName'),name=input.value.trim();if(!name)return;const ordered=document.getElementById('listOrdered').checked;const position=allLists.filter(l=>!l.parent_list_id).length;const r=await supabase.from('lists').insert({name,owner_id:user.id,ordered,parent_list_id:null,position});if(r.error)return setStatus(r.error.message);input.value='';document.getElementById('listOrdered').checked=false;await renderListTree();};
-  document.getElementById('newItem').onclick=async()=>{const input=document.getElementById('item'),text=input.value.trim();if(!text||!activeList)return;const latest=await supabase.from('list_items').select('position').eq('list_id',activeList.id).is('parent_id',null).order('position',{ascending:false}).limit(1);if(latest.error)return setStatus(latest.error.message);const position=(latest.data?.[0]?.position??-1)+1;const r=await supabase.from('list_items').insert({list_id:activeList.id,owner_id:user.id,text,position,parent_id:null});if(r.error)return setStatus(r.error.message);input.value='';await refreshItems();};
+  document.getElementById('listsNav').onclick=()=>selectApp('lists');
+  document.getElementById('infoNav').onclick=()=>selectApp('info');
+  document.getElementById('supportableNav').onclick=()=>selectApp('support');
   document.getElementById('listOrderToggle').onclick=toggleListOrdered;
-  document.getElementById('infoNav').onclick=()=>selectApp('info'); document.getElementById('listsNav').onclick=()=>selectApp('lists'); document.getElementById('supportableNav').onclick=()=>selectApp('support');
-  supabase.auth.onAuthStateChange((_e,s)=>setTimeout(()=>applySession(s),0));
-  supabase.auth.getSession().then(({data})=>applySession(data.session));
-  const removeAppRail = () => {document.getElementById('appRail')?.remove();const navigation=document.querySelector('.eb-navigation');if(navigation) navigation.style.gridTemplateColumns='var(--tree-width,220px) 6px minmax(0,1fr)';};
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',removeAppRail,{once:true});else removeAppRail();
+
+  window.eBListsSyncHeaderSession=syncHeaderSession;
 })();
