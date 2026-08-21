@@ -1,16 +1,17 @@
 /**
  * Reusable, data-source-agnostic grid view.
  * The Grid owns presentation; callers provide columns and rows.
- * A row renderer may provide richer cell content without the Grid
+ * Row/cell renderers may provide richer interaction without the Grid
  * knowing anything about the underlying data source.
  */
 export class Grid {
-  constructor({ container, columns = [], renderCell, renderRow } = {}) {
+  constructor({ container, columns = [], renderCell, renderRow, onRowClick } = {}) {
     if (!container) throw new Error('Grid requires a container');
     this.container = container;
     this.columns = columns;
     this.renderCell = renderCell || ((value) => String(value ?? ''));
     this.renderRow = renderRow || null;
+    this.onRowClick = onRowClick || null;
     this.rows = [];
   }
 
@@ -40,12 +41,29 @@ export class Grid {
 
     const body = document.createElement('tbody');
     for (const row of this.rows) {
+      const tr = document.createElement('tr');
+      tr.dataset.gridRowId = String(row?.id ?? '');
+      if (this.onRowClick) tr.addEventListener('click', event => {
+        if (event.target.closest('button,input,select,textarea,a')) return;
+        this.onRowClick(row, event);
+      });
+
       if (this.renderRow) {
         const renderedRow = this.renderRow(row, this);
-        if (renderedRow instanceof Node) body.append(renderedRow);
+        if (renderedRow instanceof Node) {
+          if (renderedRow.tagName === 'TR') {
+            tr.replaceChildren(...renderedRow.children);
+          } else {
+            const td = document.createElement('td');
+            td.colSpan = Math.max(1, this.columns.length);
+            td.append(renderedRow);
+            tr.append(td);
+          }
+        }
+        body.append(tr);
         continue;
       }
-      const tr = document.createElement('tr');
+
       for (const column of this.columns) {
         const td = document.createElement('td');
         const value = row?.[column.key];
