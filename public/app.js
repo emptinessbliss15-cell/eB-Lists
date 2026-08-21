@@ -8,6 +8,7 @@ import { Grid } from './lib/Grid.js';
   let treeInitialized = false;
   let realtimeChannel = null;
   let tabulatorGrid = null;
+  let tabulatorLoading = null;
   const setStatus = text => status.textContent = text || '';
 
   const treeView = new Tree({ container: tree, getId: node => node.id, getParentId: node => node.parent_list_id ?? null, renderNode: (node, context) => treeButton(node, context.depth, context) });
@@ -54,7 +55,37 @@ import { Grid } from './lib/Grid.js';
   async function deleteItem(item){if(!confirm(`Delete “${item.text}”?`))return;const r=await supabase.from('list_items').delete().eq('id',item.id).eq('owner_id',user.id);if(r.error)return setStatus(r.error.message);await refreshItems();}
   async function renameItem(item){const text=prompt('Edit item text:',item.text);if(text===null||!text.trim())return;await updateItemField(item,'text',text.trim());}
   function itemActions(item){const wrap=document.createElement('div');wrap.className='eb-grid-actions';wrap.append(actionButton('+','Add child item',()=>addChildItem(item)),actionButton('↑','Move up',()=>moveItem(item,-1)),actionButton('↓','Move down',()=>moveItem(item,1)),actionButton('×','Delete item',()=>deleteItem(item)));return wrap;}
-  function renderTabulator(rows){const host=document.getElementById('tabulatorGrid'),experiment=document.getElementById('tabulatorExperiment');if(!host||!window.Tabulator)return;if(!tabulatorGrid){experiment.hidden=false;tabulatorGrid=new Tabulator(host,{layout:'fitColumns',height:'220px',resizableColumnFit:true,resizableColumnGuide:true,movableColumns:true,columns:[{title:'Item',field:'text',width:300,minWidth:140,resizable:true},{title:'Done',field:'completed',width:80,minWidth:70,hozAlign:'center',formatter:'tickCross',resizable:true},{title:'Actions',field:'actionsText',width:120,minWidth:100,resizable:true}],data:rows.map(row=>({...row,actionsText:'+  ↑  ↓  ×'}))});return;}tabulatorGrid.setData(rows.map(row=>({...row,actionsText:'+  ↑  ↓  ×'})));}
+
+  function ensureTabulator(){
+    if(window.Tabulator)return Promise.resolve(window.Tabulator);
+    if(tabulatorLoading)return tabulatorLoading;
+    tabulatorLoading=new Promise((resolve,reject)=>{
+      const existing=document.querySelector('script[data-eb-tabulator]');
+      if(existing){existing.addEventListener('load',()=>resolve(window.Tabulator));existing.addEventListener('error',reject);return;}
+      const script=document.createElement('script');script.src='https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator.min.js';script.async=true;script.dataset.ebTabulator='true';script.onload=()=>window.Tabulator?resolve(window.Tabulator):reject(new Error('Tabulator loaded without global'));script.onerror=()=>reject(new Error('Unable to load Tabulator from CDN'));document.head.appendChild(script);
+    });
+    return tabulatorLoading;
+  }
+
+  async function renderTabulator(rows){
+    const host=document.getElementById('tabulatorGrid'),experiment=document.getElementById('tabulatorExperiment');
+    if(!host||!experiment)return;
+    experiment.hidden=false;
+    host.innerHTML='';
+    host.style.minHeight='180px';
+    try{
+      const Tabulator=await ensureTabulator();
+      if(!tabulatorGrid){
+        tabulatorGrid=new Tabulator(host,{layout:'fitColumns',height:'220px',resizableColumnFit:true,resizableColumnGuide:true,movableColumns:true,columnDefaults:{resizable:true},columns:[{title:'Item',field:'text',width:300,minWidth:140},{title:'Done',field:'completed',width:80,minWidth:70,hozAlign:'center',formatter:'tickCross'},{title:'Actions',field:'actionsText',width:120,minWidth:100}],data:rows.map(row=>({...row,actionsText:'+  ↑  ↓  ×'}))});
+      }else{
+        tabulatorGrid.setData(rows.map(row=>({...row,actionsText:'+  ↑  ↓  ×'})));
+      }
+    }catch(error){
+      host.textContent=`Tabulator experiment unavailable: ${error.message}`;
+      host.title='The experimental grid is optional; the production grid above is unaffected.';
+    }
+  }
+
   async function refreshItems(){if(!activeList){setStatus('Select a list to refresh its grid.');return;}const{data,error}=await supabase.from('list_items').select('*').eq('list_id',activeList.id).order('position').order('created_at');if(error){setStatus(error.message);return;}const rows=data||[];grid.setRows(rows.map(item=>({...item,completed:!!item.completed,actions:itemActions(item)})));renderTabulator(rows);setStatus('');}
 
   async function subscribeToActiveList(){
