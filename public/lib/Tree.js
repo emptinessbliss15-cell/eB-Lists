@@ -18,16 +18,27 @@ export class Tree {
     this.listeners = new Map();
     this.draggedId = null;
     this.dropTargetId = null;
+    this.dragArmed = false;
+
+    this.container.addEventListener('pointerdown', event => {
+      const handle = event.target.closest?.('.eb-tree-drag-handle');
+      if (handle) this.dragArmed = true;
+    });
 
     this.container.addEventListener('dragstart', event => {
-      const handle = event.target.closest?.('.eb-tree-drag-handle');
-      if (!handle) return;
-      const id = handle.dataset.treeNodeId;
+      const row = event.target.closest?.('.eb-tree-row[data-tree-node-id]');
+      if (!row || !this.dragArmed) return;
+      this.dragArmed = false;
+      const id = row.dataset.treeNodeId;
       if (!id) return;
       this.draggedId = id;
       event.dataTransfer?.setData('text/plain', id);
       if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
       this.emit('dragstart', { node: this.getNode(id), id });
+    });
+
+    this.container.addEventListener('pointerup', () => {
+      this.dragArmed = false;
     });
 
     this.container.addEventListener('dragover', event => {
@@ -114,6 +125,7 @@ export class Tree {
     const dropTargetId = this.dropTargetId;
     this.draggedId = null;
     this.dropTargetId = null;
+    this.dragArmed = false;
     this.emit('dragend', { draggedId, dropTargetId });
   }
 
@@ -145,10 +157,11 @@ export class Tree {
           const row = element.classList.contains('eb-tree-row') ? element : element.querySelector?.('.eb-tree-row');
           if (row) {
             row.dataset.treeNodeId = String(id);
+            row.draggable = true;
             const handle = row.querySelector('.eb-tree-drag-handle');
             if (handle) {
               handle.dataset.treeNodeId = String(id);
-              handle.draggable = true;
+              handle.draggable = false;
             }
           }
           this.container.append(element);
