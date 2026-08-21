@@ -39,8 +39,11 @@ import { Grid } from './lib/Grid.js';
   async function renameItem(item){const text=prompt('Edit item text:',item.text);if(text===null||!text.trim())return;const r=await supabase.from('list_items').update({text:text.trim()}).eq('id',item.id).eq('owner_id',user.id);if(r.error)return setStatus(r.error.message);await refreshItems();}
   function itemActions(item){const wrap=document.createElement('div');wrap.className='eb-grid-actions';wrap.append(actionButton('✓','Complete/uncomplete',()=>toggleItem(item)),actionButton('✎','Edit item',()=>renameItem(item)),actionButton('+','Add child item',()=>addChildItem(item)),actionButton('↑','Move up',()=>moveItem(item,-1)),actionButton('↓','Move down',()=>moveItem(item,1)),actionButton('×','Delete item',()=>deleteItem(item)));return wrap;}
   async function refreshItems(){if(!activeList)return;const{data,error}=await supabase.from('list_items').select('*').eq('list_id',activeList.id).order('position').order('created_at');if(error)return setStatus(error.message);grid.setRows((data||[]).map(item=>({...item,completed:!!item.completed,actions:itemActions(item)})));}
+
   window.eBLists={refreshTree:renderListTree,refreshList:refreshItems};
   window.addEventListener('eb:refresh-tree',()=>renderListTree());
   window.addEventListener('eb:refresh-list',()=>refreshItems());
-  window.addEventListener('eb-auth-session',e=>{user=e.detail?.user||null;treeInitialized=false;if(user)renderListTree();else{allLists=[];treeInitialized=false;treeView.setData([]);}});
+  function setAuthenticatedUser(nextUser){user=nextUser||null;treeInitialized=false;if(user){renderListTree();}else{allLists=[];treeInitialized=false;treeView.setData([]);}}
+  window.addEventListener('eb-auth-session',e=>setAuthenticatedUser(e.detail?.user||null));
+  supabase.auth.getSession().then(({data,error})=>{if(error)return setStatus(error.message);setAuthenticatedUser(data?.session?.user||null);});
 })();
