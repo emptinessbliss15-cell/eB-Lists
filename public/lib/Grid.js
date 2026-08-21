@@ -1,18 +1,32 @@
 /**
  * Reusable, data-source-agnostic grid view.
- * The Grid owns presentation; callers provide columns and rows.
- * Row/cell renderers may provide richer interaction without the Grid
- * knowing anything about the underlying data source.
+ * The Grid owns presentation; callers provide a Type and rows.
+ * A Type describes the fields/columns available for each row.
  */
 export class Grid {
-  constructor({ container, columns = [], renderCell, renderRow, onRowClick } = {}) {
+  constructor({ container, type = null, columns = [], renderCell, renderRow, onRowClick } = {}) {
     if (!container) throw new Error('Grid requires a container');
     this.container = container;
-    this.columns = columns;
+    this.type = type;
+    this.columns = columns.length ? columns : this.columnsFromType(type);
     this.renderCell = renderCell || ((value) => String(value ?? ''));
     this.renderRow = renderRow || null;
     this.onRowClick = onRowClick || null;
     this.rows = [];
+  }
+
+  columnsFromType(type) {
+    return Array.isArray(type?.fields) ? type.fields.map(field => ({
+      key: field.key,
+      label: field.label ?? field.key,
+      render: field.render
+    })) : [];
+  }
+
+  setType(type) {
+    this.type = type || null;
+    this.columns = this.columnsFromType(this.type);
+    this.render();
   }
 
   setColumns(columns) {
@@ -51,9 +65,8 @@ export class Grid {
       if (this.renderRow) {
         const renderedRow = this.renderRow(row, this);
         if (renderedRow instanceof Node) {
-          if (renderedRow.tagName === 'TR') {
-            tr.replaceChildren(...renderedRow.children);
-          } else {
+          if (renderedRow.tagName === 'TR') tr.replaceChildren(...renderedRow.children);
+          else {
             const td = document.createElement('td');
             td.colSpan = Math.max(1, this.columns.length);
             td.append(renderedRow);
