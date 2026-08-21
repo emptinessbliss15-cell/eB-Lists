@@ -16,9 +16,10 @@ import { Grid } from './lib/Grid.js';
   gridContainer.id = 'listGrid';
   gridContainer.className = 'eb-grid-container';
   document.getElementById('items').replaceWith(gridContainer);
-  const grid = new Grid({
-    container: gridContainer,
-    columns: [
+
+  const itemType = {
+    name: 'Item',
+    fields: [
       { key: 'text', label: 'Item', render: (value, row) => {
         const input = document.createElement('input');
         input.className = 'eb-grid-edit';
@@ -44,7 +45,9 @@ import { Grid } from './lib/Grid.js';
       }},
       { key: 'actions', label: 'Actions' }
     ]
-  });
+  };
+
+  const grid = new Grid({ container: gridContainer, type: itemType });
   window.eBListsGrid = grid;
 
   function actionButton(label,title,onClick){const b=document.createElement('button');b.type='button';b.className='eb-tree-action';b.textContent=label;b.title=title;b.setAttribute('aria-label',title);b.onclick=e=>{e.stopPropagation();onClick();};return b;}
