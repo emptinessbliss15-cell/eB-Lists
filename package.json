@@ -1,0 +1,14 @@
+{
+  "name": "eb-lists-revogrid-experiment",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@revolist/revogrid": "latest"
+  },
+  "devDependencies": {
+    "vite": "latest"
+  }
+}
