@@ -2,7 +2,7 @@
   const supabase = window.eB?.supabase;
   if (!supabase) return;
 
-  const CONSOLE_ORIGIN = 'https://dev-eb-console.emptinessbliss15.workers.dev';
+  const CONSOLE_ORIGIN = 'https://dev-console.emptinessbliss15.workers.dev';
 
   window.addEventListener('message', async (event) => {
     if (event.origin !== CONSOLE_ORIGIN) return;
