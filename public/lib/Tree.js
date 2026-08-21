@@ -2,7 +2,7 @@
  * Reusable, data-source-agnostic tree model/view helper.
  *
  * The Tree knows about nodes, hierarchy, selection, expansion, and
- * presentation hooks. It deliberately knows nothing about Supabase,
+ * drag/drop interaction. It deliberately knows nothing about Supabase,
  * Lists, or any particular persistence layer.
  */
 export class Tree {
@@ -16,6 +16,48 @@ export class Tree {
     this.selectedId = null;
     this.expandedIds = new Set();
     this.listeners = new Map();
+    this.draggedId = null;
+    this.dropTargetId = null;
+
+    this.container.addEventListener('dragstart', event => {
+      const handle = event.target.closest?.('.eb-tree-drag-handle');
+      if (!handle) return;
+      const id = handle.dataset.treeNodeId;
+      if (!id) return;
+      this.draggedId = id;
+      event.dataTransfer?.setData('text/plain', id);
+      if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+      this.emit('dragstart', { node: this.getNode(id), id });
+    });
+
+    this.container.addEventListener('dragover', event => {
+      const row = event.target.closest?.('.eb-tree-row[data-tree-node-id]');
+      if (!row || this.draggedId === null) return;
+      const targetId = row.dataset.treeNodeId;
+      if (targetId === this.draggedId) return;
+      const target = this.getNode(targetId);
+      const dragged = this.getNode(this.draggedId);
+      if (!target || !dragged || this.isDescendant(targetId, this.draggedId)) return;
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+      this.dropTargetId = targetId;
+      this.emit('dragover', { node: dragged, id: this.draggedId, target, targetId });
+    });
+
+    this.container.addEventListener('drop', event => {
+      const row = event.target.closest?.('.eb-tree-row[data-tree-node-id]');
+      if (!row || this.draggedId === null) return;
+      const targetId = row.dataset.treeNodeId;
+      if (targetId === this.draggedId) return;
+      const dragged = this.getNode(this.draggedId);
+      const target = this.getNode(targetId);
+      if (!dragged || !target || this.isDescendant(targetId, this.draggedId)) return;
+      event.preventDefault();
+      this.emit('move', { node: dragged, id: this.draggedId, target, targetId });
+      this.clearDragState();
+    });
+
+    this.container.addEventListener('dragend', () => this.clearDragState());
   }
 
   setData(nodes) {
@@ -24,11 +66,11 @@ export class Tree {
   }
 
   getNode(id) {
-    return this.nodes.find(node => this.getId(node) === id) ?? null;
+    return this.nodes.find(node => String(this.getId(node)) === String(id)) ?? null;
   }
 
   getChildren(parentId = null) {
-    return this.nodes.filter(node => this.getParentId(node) === parentId);
+    return this.nodes.filter(node => (this.getParentId(node) ?? null) === parentId);
   }
 
   hasChildren(id) {
@@ -56,6 +98,25 @@ export class Tree {
     this.render();
   }
 
+  isDescendant(candidateId, ancestorId) {
+    let current = this.getNode(candidateId);
+    while (current) {
+      const parentId = this.getParentId(current);
+      if (parentId === null || parentId === undefined) return false;
+      if (String(parentId) === String(ancestorId)) return true;
+      current = this.getNode(parentId);
+    }
+    return false;
+  }
+
+  clearDragState() {
+    const draggedId = this.draggedId;
+    const dropTargetId = this.dropTargetId;
+    this.draggedId = null;
+    this.dropTargetId = null;
+    this.emit('dragend', { draggedId, dropTargetId });
+  }
+
   on(event, handler) {
     if (!this.listeners.has(event)) this.listeners.set(event, new Set());
     this.listeners.get(event).add(handler);
@@ -80,7 +141,18 @@ export class Tree {
           select: () => this.select(id),
           emit: (event, detail) => this.emit(event, { node, id, ...detail })
         });
-        if (element) this.container.append(element);
+        if (element) {
+          const row = element.classList.contains('eb-tree-row') ? element : element.querySelector?.('.eb-tree-row');
+          if (row) {
+            row.dataset.treeNodeId = String(id);
+            const handle = row.querySelector('.eb-tree-drag-handle');
+            if (handle) {
+              handle.dataset.treeNodeId = String(id);
+              handle.draggable = true;
+            }
+          }
+          this.container.append(element);
+        }
         if (this.hasChildren(id) && this.isExpanded(id)) walk(id, depth + 1);
       }
     };
