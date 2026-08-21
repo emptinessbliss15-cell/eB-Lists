@@ -5,7 +5,8 @@
   const style = document.createElement('style');
   style.textContent = `.eb-tree-actions{opacity:1!important;visibility:visible!important}.eb-tree-action{border:1px solid transparent!important}.eb-tree-action:hover,.eb-tree-action:focus-visible{border-color:#8886!important;background:#8882!important;opacity:1!important}.eb-db-refresh{border:0;background:transparent;color:inherit;padding:3px 6px;margin:0 0 4px 0;border-radius:4px;cursor:pointer;font:inherit;font-size:12px;text-align:left}.eb-db-refresh:hover{background:#8882}.eb-tree-toolbar{display:flex;align-items:center;padding:2px 6px}.eb-tree-refresh{font-weight:600}.eb-list-refresh-row{display:flex;align-items:center;gap:6px;margin:0 0 4px 0}.eb-list-refresh-row button{border:0;background:transparent;color:inherit;padding:3px 6px;margin:0;border-radius:4px;cursor:pointer;font:inherit}.eb-list-refresh-row button:hover{background:#8882}`;
   document.head.appendChild(style);
-  const pageRefresh = document.getElementById('pageRefresh');
+  const removeLegacyHelpText = () => document.querySelectorAll('p').forEach(p => { if (p.textContent.includes('Click the circle to complete.') || p.textContent.includes('Ordered lists also have move controls.')) p.remove(); });
+  removeLegacyHelpText();
   let statusText = status.querySelector('.cf-status-text');
   if (!statusText) { statusText = document.createElement('span'); statusText.className='cf-status-text'; status.appendChild(statusText); }
   function setStatus(text,title,error=false){ statusText.textContent=text; status.title=title||''; status.classList.toggle('is-error',error); }
@@ -28,5 +29,5 @@
   }
   let currentVersion=null;
   async function refreshBuildStatus(){try{const response=await fetch('/__build',{cache:'no-store'});if(!response.ok)throw new Error(`HTTP ${response.status}`);const build=await response.json();const version=build.version||build.tag||null;const commit=build.gitCommit||build.tag||null;const branch=build.gitBranch||(location.hostname.includes('dev')?'dev':'main');if(currentVersion&&version&&version!==currentVersion){setStatus('● UPDATED',`New Cloudflare deployment: ${version}`);window.setTimeout(()=>window.location.reload(),700);return;}currentVersion=version;const shortCommit=commit?commit.slice(0,8):'unknown';const shortVersion=version?version.slice(0,8):'unknown';setStatus(`● CF LIVE · ${branch} · ${shortCommit}`,`Cloudflare build ${shortVersion}\nGit commit ${commit||'not exposed by environment'}\nBranch ${branch}${build.timestamp?`\nDeployed ${new Date(build.timestamp).toLocaleString()}`:''}`);}catch(error){setStatus('○ CF',`Cloudflare status unavailable: ${error.message}`,true);}}
-  const observer=new MutationObserver(()=>{installTreeRefresh();installListRefresh();});observer.observe(document.body,{childList:true,subtree:true});installTreeRefresh();installListRefresh();refreshBuildStatus();window.setInterval(refreshBuildStatus,5000);
+  const observer=new MutationObserver(()=>{installTreeRefresh();installListRefresh();removeLegacyHelpText();});observer.observe(document.body,{childList:true,subtree:true});installTreeRefresh();installListRefresh();refreshBuildStatus();window.setInterval(refreshBuildStatus,5000);
 })();
