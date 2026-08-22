@@ -35,6 +35,21 @@ async function persistOrder(from, to) {
   scheduleSync(150);
 }
 
+function makeTextTemplate(h, props) {
+  const span = h('span', {
+    style: {
+      color: '#f3f4f6',
+      display: 'block',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      lineHeight: '1.3'
+    }
+  });
+  span.textContent = String(props.model?.text ?? '');
+  return span;
+}
+
 function makeCheckboxTemplate(h, props) {
   const checked = !!props.model[props.prop];
   return h('input', { type: 'checkbox', checked, 'aria-label': 'Completed', onClick: event => event.stopPropagation(), onChange: event => {
@@ -49,9 +64,13 @@ function makeCheckboxTemplate(h, props) {
 }
 
 function makeActionsTemplate(h, props) {
-  const wrap = h('div', { style: { display: 'flex', gap: '2px', alignItems: 'center' } });
+  const wrap = h('div', { style: { display: 'flex', gap: '1px', alignItems: 'center' } });
   const button = (label, title, handler) => {
-    const b = h('button', { type: 'button', title, 'aria-label': title, onClick: event => { event.stopPropagation(); handler(); } });
+    const b = h('button', {
+      type: 'button', title, 'aria-label': title,
+      style: { padding: '1px 4px', margin: '0', lineHeight: '1.1', minHeight: '20px' },
+      onClick: event => { event.stopPropagation(); handler(); }
+    });
     b.textContent = label;
     wrap.appendChild(b);
   };
@@ -85,11 +104,12 @@ async function syncGrid() {
       grid.style.width = '100%';
       grid.style.height = '100%';
       grid.theme = 'darkCompact';
+      grid.rowSize = 28;
       grid.resize = true;
       grid.canMoveColumns = true;
       grid.colSize = 140;
       grid.columns = [
-        { prop: 'text', name: 'Item', size: 420, minSize: 140, rowDrag: true },
+        { prop: 'text', name: 'Item', size: 420, minSize: 140, rowDrag: true, cellTemplate: makeTextTemplate },
         { prop: 'completed', name: 'Done', size: 80, minSize: 70, readonly: true, cellTemplate: makeCheckboxTemplate },
         { prop: 'actionsDisplay', name: 'Actions', size: 90, minSize: 80, readonly: true, cellTemplate: makeActionsTemplate },
       ];
