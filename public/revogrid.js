@@ -39,7 +39,6 @@ function makeTextTemplate(h, props) {
   const text = String(props.model?.text ?? '');
   return h('span', {
     style: {
-      color: '#f3f4f6',
       display: 'block',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
@@ -100,8 +99,6 @@ async function syncGrid() {
     if (!grid) {
       grid = document.createElement('revo-grid');
       grid.className = 'eb-revo-grid';
-      grid.style.width = '100%';
-      grid.style.height = '100%';
       grid.theme = 'darkCompact';
       grid.rowSize = 28;
       grid.resize = true;
