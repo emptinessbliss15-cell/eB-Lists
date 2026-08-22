@@ -1,4 +1,4 @@
-import { Tree } from './lib/Tree.js';
+import { RevoTree } from './lib/RevoTree.js';
 import { Grid } from './lib/Grid.js';
 
 (() => {
@@ -11,8 +11,16 @@ import { Grid } from './lib/Grid.js';
   let tabulatorLoading = null;
   const setStatus = text => status.textContent = text || '';
 
-  const treeView = new Tree({ container: tree, getId: node => node.id, getParentId: node => node.parent_list_id ?? null, renderNode: (node, context) => treeButton(node, context.depth, context) });
+  const treeView = new RevoTree({ container: tree, getId: node => node.id, getParentId: node => node.parent_list_id ?? null });
   window.eBListsTree = treeView;
+  treeView.on('select', ({ node }) => { if (node) openList(node); });
+  treeView.on('action', ({ action, node }) => {
+    if (!node) return;
+    if (action === 'add') addSubList(node);
+    if (action === 'up') moveList(node, -1);
+    if (action === 'down') moveList(node, 1);
+    if (action === 'delete') deleteList(node);
+  });
 
   const gridContainer = document.createElement('div');
   gridContainer.id = 'listGrid';
