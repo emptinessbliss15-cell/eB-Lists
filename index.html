@@ -1,1 +1,123 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>eB Lists</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><link href="https://unpkg.com/tabulator-tables@6.3.1/dist/css/tabulator.min.css" rel="stylesheet"><script src="https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator.min.js"></script><style>body{margin:0;font-family:system-ui}.eb-tabulator-experiment{display:block!important;margin-top:18px;padding-top:12px;border-top:1px dashed #8888}.eb-tabulator-title{font-size:13px;font-weight:600;margin:0 0 6px}.eb-tabulator-host{width:100%;min-height:180px}.tabulator{font-family:inherit;font-size:13px;border:1px solid #5b5bd6}.tabulator .tabulator-header{background:#8882}.tabulator .tabulator-header .tabulator-col{background:transparent;border-right:1px solid #5b5bd6}.tabulator .tabulator-row .tabulator-cell{border-right:1px solid #5b5bd6}.tabulator .tabulator-row{border-bottom:1px solid #5b5bd6}</style></head><body><div id="appHeader" class="eb-header"><div class="eb-header-inner"><div class="cf-build-status"><button id="pageRefresh" class="refresh-button" type="button">↻</button><span class="cf-build-dot">●</span><span>CF: deployed</span></div><div class="eb-row"><strong>eBliss Console</strong><span class="eb-app-name">Lists</span></div><div id="account" class="eb-account"><button id="signInHeader" class="auth-control" type="button" hidden>Login</button><strong id="user" class="auth-control" hidden></strong><select id="themeSelect" class="auth-control" hidden><option value="default">Default</option><option value="light">Light</option><option value="midnight">Midnight</option></select><button id="signOut" class="auth-control" type="button" hidden>Logout</button></div></div></div><div id="shell" class="eb-shell"><div class="eb-navigation"><nav id="appRail" class="eb-app-rail" aria-label="Applications"><button id="infoNav">ⓘ</button><button id="listsNav">☷</button><button id="supportableNav">◉</button></nav><nav id="tree" class="eb-tree" aria-label="Application navigation"></nav><div id="treeSplitter" class="eb-tree-splitter"></div><main class="eb-main"><section id="auth" class="card"><h2>Sign in</h2><input id="email" type="email" placeholder="Email"><input id="password" type="password" placeholder="Password"><div><button id="signIn">Sign in</button><button id="signUp">Create account</button></div></section><section id="app" class="card" hidden><div class="eb-row"><h2 id="appTitle">Lists</h2><div class="content-actions"><button id="themeAction">◐</button><button id="moreAction">⋮</button></div></div><div id="listWorkspace"><div><input id="listName" placeholder="New list name"><label><input id="listOrdered" type="checkbox"> Ordered</label><button id="newList">Create list</button></div><div id="listView" hidden><div class="eb-row"><h2 id="activeList"></h2><button id="listOrderToggle">Unordered</button></div><div class="muted" id="listMode"></div><input id="item" placeholder="Add an item"><button id="newItem">Add</button><ul id="items"></ul><div id="tabulatorExperiment" class="eb-tabulator-experiment"><div class="eb-tabulator-title">Grid experiment — Tabulator</div><div id="tabulatorGrid" class="eb-tabulator-host"></div></div></div></div><iframe id="contentFrame" class="eb-content-frame" title="Application content" hidden></iframe></section><p id="status" class="muted"></p></main></div></div></div><script type="module">import{loadEBlissTheme}from'./public/theme-loader.js';await loadEBlissTheme();</script><script src="./public/app.js"></script><script src="./public/system-ui.js"></script><script src="./public/console-auth.js"></script><script src="./public/template-dnd.js"></script><script src="./public/tree-collapse.js"></script><script src="./public/tree-dnd.js"></script><script src="./public/build-status.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>eB Lists</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui;
+      }
+
+      .eb-revo-grid {
+        display: block;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="appHeader" class="eb-header">
+      <div class="eb-header-inner">
+        <div class="cf-build-status">
+          <button id="pageRefresh" class="refresh-button" type="button">↻</button>
+          <span class="cf-build-dot">●</span>
+          <span>CF: deployed</span>
+        </div>
+        <div class="eb-row">
+          <strong>eBliss Console</strong>
+          <span class="eb-app-name">Lists</span>
+        </div>
+        <div id="account" class="eb-account">
+          <button id="signInHeader" class="auth-control" type="button" hidden>Login</button>
+          <strong id="user" class="auth-control" hidden></strong>
+          <select id="themeSelect" class="auth-control" hidden>
+            <option value="default">Default</option>
+            <option value="light">Light</option>
+            <option value="midnight">Midnight</option>
+          </select>
+          <button id="signOut" class="auth-control" type="button" hidden>Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="shell" class="eb-shell">
+      <div class="eb-navigation">
+        <nav id="appRail" class="eb-app-rail" aria-label="Applications">
+          <button id="infoNav">ⓘ</button>
+          <button id="listsNav">☷</button>
+          <button id="supportableNav">◉</button>
+        </nav>
+
+        <nav id="tree" class="eb-tree" aria-label="Application navigation"></nav>
+        <div id="treeSplitter" class="eb-tree-splitter"></div>
+
+        <main class="eb-main">
+          <section id="auth" class="card">
+            <h2>Sign in</h2>
+            <input id="email" type="email" placeholder="Email">
+            <input id="password" type="password" placeholder="Password">
+            <div>
+              <button id="signIn">Sign in</button>
+              <button id="signUp">Create account</button>
+            </div>
+          </section>
+
+          <section id="app" class="card" hidden>
+            <div class="eb-row">
+              <h2 id="appTitle">Lists</h2>
+              <div class="content-actions">
+                <button id="themeAction">◐</button>
+                <button id="moreAction">⋮</button>
+              </div>
+            </div>
+
+            <div id="listWorkspace">
+              <div>
+                <input id="listName" placeholder="New list name">
+                <label>
+                  <input id="listOrdered" type="checkbox">
+                  Ordered
+                </label>
+                <button id="newList">Create list</button>
+              </div>
+
+              <div id="listView" hidden>
+                <div class="eb-row">
+                  <h2 id="activeList"></h2>
+                  <button id="listOrderToggle">Unordered</button>
+                </div>
+                <div class="muted" id="listMode"></div>
+                <input id="item" placeholder="Add an item">
+                <button id="newItem">Add</button>
+                <ul id="items"></ul>
+              </div>
+            </div>
+
+            <iframe
+              id="contentFrame"
+              class="eb-content-frame"
+              title="Application content"
+              hidden
+            ></iframe>
+          </section>
+
+          <p id="status" class="muted"></p>
+        </main>
+      </div>
+    </div>
+
+    <script type="module">
+      import { loadEBlissTheme } from './public/theme-loader.js';
+      await loadEBlissTheme();
+    </script>
+    <script src="./public/app.js"></script>
+    <script src="./public/system-ui.js"></script>
+    <script src="./public/console-auth.js"></script>
+    <script src="./public/template-dnd.js"></script>
+    <script src="./public/tree-collapse.js"></script>
+    <script src="./public/tree-dnd.js"></script>
+    <script src="./public/build-status.js"></script>
+  </body>
+</html>
