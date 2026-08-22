@@ -44,7 +44,7 @@ export class Grid {
     const blue = getComputedStyle(document.documentElement).getPropertyValue('--eb-accent').trim() || '#5b5bd6';
     const table = document.createElement('table');
     table.className = 'eb-grid';
-    table.style.cssText = `width:100%;border-collapse:collapse;border:1px solid ${blue};`;
+    table.style.cssText = `width:100%;border-collapse:collapse;border:1px solid ${blue};color:CanvasText;background:Canvas;`;
 
     const head = document.createElement('thead');
     const headerRow = document.createElement('tr');
@@ -52,6 +52,8 @@ export class Grid {
       const th = document.createElement('th');
       th.textContent = column.label ?? column.key ?? '';
       th.style.border = `1px solid ${blue}`;
+      th.style.color = 'CanvasText';
+      th.style.background = 'Canvas';
       headerRow.append(th);
     }
     head.append(headerRow);
@@ -77,7 +79,11 @@ export class Grid {
             tr.append(td);
           }
         }
-        for (const cell of tr.children) cell.style.border = `1px solid ${blue}`;
+        for (const cell of tr.children) {
+          cell.style.border = `1px solid ${blue}`;
+          cell.style.color = 'CanvasText';
+          cell.style.background = 'Canvas';
+        }
         body.append(tr);
         continue;
       }
@@ -85,12 +91,19 @@ export class Grid {
       for (const column of this.columns) {
         const td = document.createElement('td');
         td.style.border = `1px solid ${blue}`;
+        td.style.color = 'CanvasText';
+        td.style.background = 'Canvas';
         const value = row?.[column.key];
         const rendered = column.render
           ? column.render(value, row)
           : this.renderCell(value, row, column);
-        if (rendered instanceof Node) td.append(rendered);
-        else td.textContent = String(rendered ?? '');
+        if (rendered instanceof Node) {
+          if (rendered.matches?.('input,select,textarea')) {
+            rendered.style.color = 'CanvasText';
+            rendered.style.backgroundColor = 'Canvas';
+          }
+          td.append(rendered);
+        } else td.textContent = String(rendered ?? '');
         tr.append(td);
       }
       body.append(tr);
