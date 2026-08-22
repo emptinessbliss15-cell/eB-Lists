@@ -35,19 +35,6 @@ async function persistOrder(from, to) {
   scheduleSync(150);
 }
 
-function makeTextTemplate(h, props) {
-  const text = String(props.model?.text ?? '');
-  return h('span', {
-    style: {
-      display: 'block',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap',
-      lineHeight: '1.3'
-    }
-  }, text);
-}
-
 function makeCheckboxTemplate(h, props) {
   const checked = !!props.model[props.prop];
   return h('input', { type: 'checkbox', checked, 'aria-label': 'Completed', onClick: event => event.stopPropagation(), onChange: event => {
@@ -100,12 +87,11 @@ async function syncGrid() {
       grid = document.createElement('revo-grid');
       grid.className = 'eb-revo-grid';
       grid.theme = 'darkCompact';
-      grid.rowSize = 28;
       grid.resize = true;
       grid.canMoveColumns = true;
       grid.colSize = 140;
       grid.columns = [
-        { prop: 'text', name: 'Item', size: 420, minSize: 140, rowDrag: true, cellTemplate: makeTextTemplate },
+        { prop: 'text', name: 'Item', size: 420, minSize: 140, rowDrag: true },
         { prop: 'completed', name: 'Done', size: 80, minSize: 70, readonly: true, cellTemplate: makeCheckboxTemplate },
         { prop: 'actionsDisplay', name: 'Actions', size: 90, minSize: 80, readonly: true, cellTemplate: makeActionsTemplate },
       ];
