@@ -21,7 +21,7 @@ export class RevoTree {
       defineCustomElement();
       this.grid = document.createElement('revo-grid');
       this.grid.className = 'eb-revo-tree-grid';
-      this.grid.theme = 'compact';
+      this.grid.theme = 'darkCompact';
       this.grid.readonly = true;
       this.grid.range = false;
       this.grid.rowSize = 30;
@@ -30,6 +30,11 @@ export class RevoTree {
         prop: 'name', name: '', size: 360, readonly: true,
         cellTemplate: (h, { model }) => this.cellTemplate(h, model),
       }];
+
+      this.container.style.background = '#1e1e1e';
+      this.container.style.color = '#ddd';
+      this.container.style.borderRadius = '4px';
+
       this.container.replaceChildren(this.grid);
       this.render();
     } catch (error) {
