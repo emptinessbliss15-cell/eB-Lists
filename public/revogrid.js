@@ -7,27 +7,35 @@ let grid = null;
 let syncTimer = 0;
 let syncing = false;
 
+function setStatus(text, error = false) {
+  const status = document.getElementById('status');
+  if (status) {
+    status.textContent = text;
+    status.style.opacity = text ? '1' : '';
+    status.dataset.state = error ? 'error' : 'ok';
+  }
+}
+
 function scheduleSync(delay = 80) {
   clearTimeout(syncTimer);
   syncTimer = setTimeout(syncGrid, delay);
 }
 
 async function persistOrder(from, to) {
-  const listView = document.getElementById('listView');
   const selectedId = window.eBListsTree?.selectedId;
   if (!supabase || !selectedId || !Number.isInteger(from) || !Number.isInteger(to) || from === to) return;
-
+  setStatus('Saving…');
   const { data, error } = await supabase
     .from('list_items')
     .select('id, position')
     .eq('list_id', selectedId)
     .order('position')
     .order('created_at');
-  if (error || !data?.length) return;
+  if (error || !data?.length) { setStatus('Save failed', true); return; }
 
   const reordered = [...data];
   const [moved] = reordered.splice(from, 1);
-  if (!moved) return;
+  if (!moved) { setStatus('Save failed', true); return; }
   reordered.splice(to, 0, moved);
 
   for (let index = 0; index < reordered.length; index++) {
@@ -35,8 +43,9 @@ async function persistOrder(from, to) {
       .from('list_items')
       .update({ position: index })
       .eq('id', reordered[index].id);
-    if (result.error) return;
+    if (result.error) { setStatus('Save failed', true); return; }
   }
+  setStatus('✓ Saved');
   scheduleSync(150);
 }
 
@@ -47,12 +56,15 @@ function makeCheckboxTemplate(h, props) {
     checked,
     'aria-label': 'Completed',
     onClick: event => event.stopPropagation(),
-    onChange: event => {
+    onChange: async event => {
       const next = !!event.target.checked;
-      supabase?.from('list_items')
+      setStatus('Saving…');
+      const { error } = await supabase?.from('list_items')
         .update({ completed: next })
-        .eq('id', props.model.id)
-        .then(({ error }) => { if (!error) scheduleSync(120); });
+        .eq('id', props.model.id) || {};
+      if (error) { setStatus('Save failed', true); return; }
+      setStatus('✓ Saved');
+      scheduleSync(120);
     },
   });
 }
@@ -65,13 +77,14 @@ async function syncGrid() {
 
   syncing = true;
   try {
+    setStatus('Refreshing…');
     const { data, error } = await supabase
       .from('list_items')
       .select('*')
       .eq('list_id', selectedId)
       .order('position')
       .order('created_at');
-    if (error) return;
+    if (error) { setStatus('Refresh failed', true); return; }
 
     const rows = data || [];
 
@@ -94,11 +107,14 @@ async function syncGrid() {
       grid.addEventListener('afteredit', async event => {
         const { model, prop, val } = event.detail || {};
         if (!model || !model.id || prop !== 'text') return;
+        setStatus('Saving…');
         const { error: updateError } = await supabase
           .from('list_items')
           .update({ text: String(val ?? '').trim() })
           .eq('id', model.id);
-        if (!updateError) scheduleSync(150);
+        if (updateError) { setStatus('Save failed', true); return; }
+        setStatus('✓ Saved');
+        scheduleSync(150);
       });
 
       grid.addEventListener('roworderchange', event => {
@@ -120,6 +136,7 @@ async function syncGrid() {
     } else {
       grid.source = rows.map(row => ({ ...row, actionsDisplay: '＋  ↑  ↓  ×' }));
     }
+    setStatus('✓ Refreshed');
   } finally {
     syncing = false;
   }
