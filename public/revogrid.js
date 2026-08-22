@@ -7,14 +7,10 @@ let grid = null;
 let syncTimer = 0;
 let syncing = false;
 
-function setStatus(text, error = false) {
-  const status = document.getElementById('status');
-  if (status) {
-    status.textContent = text;
-    status.style.opacity = text ? '1' : '';
-    status.dataset.state = error ? 'error' : 'ok';
-  }
-}
+const setStatus = text => {
+  const el = document.getElementById('status');
+  if (el) el.textContent = text || '';
+};
 
 function scheduleSync(delay = 80) {
   clearTimeout(syncTimer);
@@ -31,11 +27,11 @@ async function persistOrder(from, to) {
     .eq('list_id', selectedId)
     .order('position')
     .order('created_at');
-  if (error || !data?.length) { setStatus('Save failed', true); return; }
+  if (error || !data?.length) { setStatus(error?.message || 'Save failed'); return; }
 
   const reordered = [...data];
   const [moved] = reordered.splice(from, 1);
-  if (!moved) { setStatus('Save failed', true); return; }
+  if (!moved) return;
   reordered.splice(to, 0, moved);
 
   for (let index = 0; index < reordered.length; index++) {
@@ -43,7 +39,7 @@ async function persistOrder(from, to) {
       .from('list_items')
       .update({ position: index })
       .eq('id', reordered[index].id);
-    if (result.error) { setStatus('Save failed', true); return; }
+    if (result.error) { setStatus(`Save failed: ${result.error.message}`); return; }
   }
   setStatus('✓ Saved');
   scheduleSync(150);
@@ -56,15 +52,17 @@ function makeCheckboxTemplate(h, props) {
     checked,
     'aria-label': 'Completed',
     onClick: event => event.stopPropagation(),
-    onChange: async event => {
+    onChange: event => {
       const next = !!event.target.checked;
       setStatus('Saving…');
-      const { error } = await supabase?.from('list_items')
+      supabase?.from('list_items')
         .update({ completed: next })
-        .eq('id', props.model.id) || {};
-      if (error) { setStatus('Save failed', true); return; }
-      setStatus('✓ Saved');
-      scheduleSync(120);
+        .eq('id', props.model.id)
+        .then(({ error }) => {
+          if (error) { setStatus(`Save failed: ${error.message}`); return; }
+          setStatus('✓ Saved');
+          scheduleSync(120);
+        });
     },
   });
 }
@@ -76,15 +74,15 @@ async function syncGrid() {
   if (!listView || listView.hidden || !selectedId) return;
 
   syncing = true;
+  setStatus('Refreshing…');
   try {
-    setStatus('Refreshing…');
     const { data, error } = await supabase
       .from('list_items')
       .select('*')
       .eq('list_id', selectedId)
       .order('position')
       .order('created_at');
-    if (error) { setStatus('Refresh failed', true); return; }
+    if (error) { setStatus(`Refresh failed: ${error.message}`); return; }
 
     const rows = data || [];
 
@@ -112,7 +110,7 @@ async function syncGrid() {
           .from('list_items')
           .update({ text: String(val ?? '').trim() })
           .eq('id', model.id);
-        if (updateError) { setStatus('Save failed', true); return; }
+        if (updateError) { setStatus(`Save failed: ${updateError.message}`); return; }
         setStatus('✓ Saved');
         scheduleSync(150);
       });
@@ -135,11 +133,40 @@ async function syncGrid() {
       }
     } else {
       grid.source = rows.map(row => ({ ...row, actionsDisplay: '＋  ↑  ↓  ×' }));
+      await grid.refresh?.('all');
     }
     setStatus('✓ Refreshed');
   } finally {
     syncing = false;
   }
+}
+
+async function addItem() {
+  const listId = window.eBListsTree?.selectedId;
+  const input = document.getElementById('item');
+  const text = input?.value.trim();
+  if (!supabase || !listId || !text) return;
+
+  setStatus('Saving…');
+  const { data: lastRows, error: readError } = await supabase
+    .from('list_items')
+    .select('position')
+    .eq('list_id', listId)
+    .order('position', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (readError) { setStatus(`Save failed: ${readError.message}`); return; }
+
+  const position = (lastRows?.[0]?.position ?? -1) + 1;
+  const user = window.eBAuth?.getUser?.();
+  const payload = { list_id: listId, text, position };
+  if (user?.id) payload.owner_id = user.id;
+
+  const { error } = await supabase.from('list_items').insert(payload);
+  if (error) { setStatus(`Save failed: ${error.message}`); return; }
+  if (input) input.value = '';
+  setStatus('✓ Saved');
+  await syncGrid();
 }
 
 const listView = document.getElementById('listView');
@@ -148,7 +175,22 @@ if (listView) {
 }
 
 window.addEventListener('eb-auth-session', () => scheduleSync(150));
-window.addEventListener('eb:refresh-list', () => scheduleSync());
+window.addEventListener('eb:refresh-list', () => syncGrid());
+
+document.getElementById('listRefresh')?.addEventListener('click', event => {
+  event.preventDefault();
+  syncGrid();
+});
+document.getElementById('newItem')?.addEventListener('click', event => {
+  event.preventDefault();
+  addItem();
+});
+document.getElementById('item')?.addEventListener('keydown', event => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    addItem();
+  }
+});
 
 const tree = document.getElementById('tree');
 if (tree) new MutationObserver(() => scheduleSync()).observe(tree, { childList: true, subtree: true });
