@@ -14,22 +14,23 @@ export class RevoTree {
       { prop: 'name', name: 'Lists', size: 280, sortable: false, readonly: true,
         cellTemplate: (h, props) => {
           const model = props.model;
-          const wrap = h('div', { class: 'eb-revo-tree-cell', style: { display:'flex', alignItems:'center', gap:'4px', paddingLeft:`${(model.level||0)*16}px`, width:'100%', boxSizing:'border-box' } });
-          if (model.hasChildren) wrap.appendChild(h('button', { type:'button', class:'eb-revo-tree-toggle', title:model.expanded?'Collapse':'Expand', 'aria-label':model.expanded?'Collapse':'Expand', onclick:e=>{e.stopPropagation();this.toggle(model.id);} }, model.expanded?'▾':'▸'));
-          else wrap.appendChild(h('span', { class:'eb-revo-tree-toggle-spacer', 'aria-hidden':'true' }, ''));
-          wrap.appendChild(h('span', { class:`eb-revo-tree-label${model.id===this.selectedId?' selected':''}`, title:model.name }, `${model.name} ${model.ordered?'☷':'☰'}`));
-          return wrap;
+          const toggle = model.hasChildren
+            ? h('button', { type:'button', class:'eb-revo-tree-toggle', title:model.expanded?'Collapse':'Expand', 'aria-label':model.expanded?'Collapse':'Expand', onclick:e=>{e.stopPropagation();this.toggle(model.id);} }, model.expanded?'▾':'▸')
+            : h('span', { class:'eb-revo-tree-toggle-spacer', 'aria-hidden':'true' }, '');
+          const label = h('span', { class:`eb-revo-tree-label${model.id===this.selectedId?' selected':''}`, title:model.name }, `${model.name} ${model.ordered?'☷':'☰'}`);
+          return h('div', { class:'eb-revo-tree-cell', style:{display:'flex',alignItems:'center',gap:'4px',paddingLeft:`${(model.level||0)*16}px`,width:'100%',boxSizing:'border-box'} }, toggle, label);
         }
       },
       { prop:'actions', name:'', size:104, readonly:true,
         cellTemplate:(h,props)=>{
-          const model=props.model, wrap=h('div',{class:'eb-revo-tree-actions'});
+          const model=props.model;
           const button=(label,title,action)=>h('button',{type:'button',class:'eb-revo-tree-action',title,'aria-label':title,onclick:e=>{e.stopPropagation();action?.(model.original);}},label);
-          wrap.appendChild(button('+','Add sub-list',this.onAdd));
-          wrap.appendChild(button('↑','Move up',node=>this.onMove?.(node,-1)));
-          wrap.appendChild(button('↓','Move down',node=>this.onMove?.(node,1)));
-          wrap.appendChild(button('×','Delete list',this.onDelete));
-          return wrap;
+          return h('div',{class:'eb-revo-tree-actions'},
+            button('+','Add sub-list',this.onAdd),
+            button('↑','Move up',node=>this.onMove?.(node,-1)),
+            button('↓','Move down',node=>this.onMove?.(node,1)),
+            button('×','Delete list',this.onDelete)
+          );
         }
       }
     ];
