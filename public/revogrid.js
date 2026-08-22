@@ -36,7 +36,8 @@ async function persistOrder(from, to) {
 }
 
 function makeTextTemplate(h, props) {
-  const span = h('span', {
+  const text = String(props.model?.text ?? '');
+  return h('span', {
     style: {
       color: '#f3f4f6',
       display: 'block',
@@ -45,9 +46,7 @@ function makeTextTemplate(h, props) {
       whiteSpace: 'nowrap',
       lineHeight: '1.3'
     }
-  });
-  span.textContent = String(props.model?.text ?? '');
-  return span;
+  }, text);
 }
 
 function makeCheckboxTemplate(h, props) {
