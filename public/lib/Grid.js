@@ -35,7 +35,7 @@ export class Grid {
 
     this.grid = document.createElement('revo-grid');
     this.grid.className = 'eb-revo-grid';
-    this.grid.theme = 'compact';
+    this.grid.theme = 'darkCompact';
     this.grid.readonly = true;
     this.grid.range = false;
     this.grid.rowSize = 30;
@@ -43,6 +43,10 @@ export class Grid {
     this.grid.stretch = true;
     this.grid.style.height = '280px';
     this.grid.style.width = '100%';
+
+    this.container.style.background = '#1e1e1e';
+    this.container.style.color = '#ddd';
+    this.container.style.borderRadius = '4px';
 
     this.grid.columns = this.buildColumns();
     this.container.replaceChildren(this.grid);
@@ -68,7 +72,7 @@ export class Grid {
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
               padding: '4px 6px',
-              color: 'var(--eb-text, inherit)',
+              color: '#ddd',
             },
           },
           String(value ?? '')
@@ -83,7 +87,7 @@ export class Grid {
               display: 'block',
               textAlign: 'center',
               padding: '4px 6px',
-              color: 'var(--eb-text, inherit)',
+              color: '#ddd',
             },
           },
           value ? '✓' : ''
@@ -97,7 +101,7 @@ export class Grid {
             style: {
               display: 'block',
               padding: '4px 6px',
-              color: 'var(--eb-text, inherit)',
+              color: '#ddd',
             },
           },
           model.actionsText ?? ''
