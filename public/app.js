@@ -1,4 +1,4 @@
-import { Tree } from './lib/Tree.js';
+import { RevoTree } from './lib/RevoTree.js';
 import { Grid } from './lib/Grid.js';
 
 (() => {
@@ -11,7 +11,15 @@ import { Grid } from './lib/Grid.js';
   let tabulatorLoading = null;
   const setStatus = text => status.textContent = text || '';
 
-  const treeView = new Tree({ container: tree, getId: node => node.id, getParentId: node => node.parent_list_id ?? null, renderNode: (node, context) => treeButton(node, context.depth, context) });
+  const treeView = new RevoTree({
+    container: tree,
+    getId: node => node.id,
+    getParentId: node => node.parent_list_id ?? null,
+    onOpen: list => openList(list),
+    onAdd: list => addSubList(list),
+    onMove: (list, direction) => moveList(list, direction),
+    onDelete: list => deleteList(list)
+  });
   window.eBListsTree = treeView;
 
   const gridContainer = document.createElement('div');
@@ -70,28 +78,16 @@ import { Grid } from './lib/Grid.js';
   async function renderTabulator(rows){
     const host=document.getElementById('tabulatorGrid'),experiment=document.getElementById('tabulatorExperiment');
     if(!host||!experiment)return;
-    experiment.hidden=false;
-    host.innerHTML='';
-    host.style.minHeight='180px';
-    try{
-      const Tabulator=await ensureTabulator();
-      if(!tabulatorGrid){
-        tabulatorGrid=new Tabulator(host,{layout:'fitColumns',height:'220px',resizableColumnFit:true,resizableColumnGuide:true,movableColumns:true,columnDefaults:{resizable:true},columns:[{title:'Item',field:'text',width:300,minWidth:140},{title:'Done',field:'completed',width:80,minWidth:70,hozAlign:'center',formatter:'tickCross'},{title:'Actions',field:'actionsText',width:120,minWidth:100}],data:rows.map(row=>({...row,actionsText:'+  ↑  ↓  ×'}))});
-      }else{
-        tabulatorGrid.setData(rows.map(row=>({...row,actionsText:'+  ↑  ↓  ×'})));
-      }
-    }catch(error){
-      host.textContent=`Tabulator experiment unavailable: ${error.message}`;
-      host.title='The experimental grid is optional; the production grid above is unaffected.';
-    }
+    experiment.hidden=false; host.innerHTML=''; host.style.minHeight='180px';
+    try{const Tabulator=await ensureTabulator();if(!tabulatorGrid){tabulatorGrid=new Tabulator(host,{layout:'fitColumns',height:'220px',resizableColumnFit:true,resizableColumnGuide:true,movableColumns:true,columnDefaults:{resizable:true},columns:[{title:'Item',field:'text',width:300,minWidth:140},{title:'Done',field:'completed',width:80,minWidth:70,hozAlign:'center',formatter:'tickCross'},{title:'Actions',field:'actionsText',width:120,minWidth:100}],data:rows.map(row=>({...row,actionsText:'+  ↑  ↓  ×'}))});}else{tabulatorGrid.setData(rows.map(row=>({...row,actionsText:'+  ↑  ↓  ×'})));}}
+    catch(error){host.textContent=`Tabulator experiment unavailable: ${error.message}`;host.title='The experimental grid is optional; the production grid above is unaffected.';}
   }
 
   async function refreshItems(){if(!activeList){setStatus('Select a list to refresh its grid.');return;}const{data,error}=await supabase.from('list_items').select('*').eq('list_id',activeList.id).order('position').order('created_at');if(error){setStatus(error.message);return;}const rows=data||[];grid.setRows(rows.map(item=>({...item,completed:!!item.completed,actions:itemActions(item)})));renderTabulator(rows);setStatus('');}
 
   async function subscribeToActiveList(){
-    if (realtimeChannel) { await supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
-    if (!activeList) return;
-    realtimeChannel = supabase.channel(`eb-lists-items-${activeList.id}`).on('postgres_changes',{event:'*',schema:'public',table:'list_items',filter:`list_id=eq.${activeList.id}`},payload=>{if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT' || payload.eventType === 'DELETE') refreshItems();}).on('postgres_changes',{event:'UPDATE',schema:'public',table:'lists',filter:`id=eq.${activeList.id}`},payload=>{if (payload.new) { activeList = {...activeList,...payload.new}; showActiveListName(); document.getElementById('listMode').textContent=activeList.ordered?'Ordered':'Unordered'; document.getElementById('listOrderToggle').textContent=activeList.ordered?'Ordered':'Unordered'; renderListTree(); }}).subscribe((state, error) => {if (state === 'SUBSCRIBED') setStatus(''); else if (state === 'CHANNEL_ERROR' || error) setStatus('Realtime unavailable; refresh to see remote changes.');});
+    if(realtimeChannel){await supabase.removeChannel(realtimeChannel);realtimeChannel=null;}if(!activeList)return;
+    realtimeChannel=supabase.channel(`eb-lists-items-${activeList.id}`).on('postgres_changes',{event:'*',schema:'public',table:'list_items',filter:`list_id=eq.${activeList.id}`},payload=>{if(payload.eventType==='UPDATE'||payload.eventType==='INSERT'||payload.eventType==='DELETE')refreshItems();}).on('postgres_changes',{event:'UPDATE',schema:'public',table:'lists',filter:`id=eq.${activeList.id}`},payload=>{if(payload.new){activeList={...activeList,...payload.new};showActiveListName();document.getElementById('listMode').textContent=activeList.ordered?'Ordered':'Unordered';document.getElementById('listOrderToggle').textContent=activeList.ordered?'Ordered':'Unordered';renderListTree();}}).subscribe((state,error)=>{if(state==='SUBSCRIBED')setStatus('');else if(state==='CHANNEL_ERROR'||error)setStatus('Realtime unavailable; refresh to see remote changes.');});
   }
 
   window.eBLists={refreshTree:renderListTree,refreshList:refreshItems};
