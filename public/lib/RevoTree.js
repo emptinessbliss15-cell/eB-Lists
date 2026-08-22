@@ -10,6 +10,7 @@ export class RevoTree {
     this.grid = document.createElement('revo-grid');
     this.grid.className = 'eb-revo-tree-grid'; this.grid.style.width = '100%'; this.grid.style.height = '100%';
     this.grid.theme = 'darkCompact';
+    this.grid.rowSize = 26;
     this.grid.readonly = true; this.grid.rowHeaders = false;
     this.grid.columns = [
       { prop: 'name', name: 'Lists', size: 280, sortable: false, readonly: true,
@@ -22,17 +23,17 @@ export class RevoTree {
             this.render();
           };
           const toggle = model.hasChildren
-            ? h('button', { type:'button', class:'eb-revo-tree-toggle', title:model.expanded?'Collapse':'Expand', 'aria-label':model.expanded?'Collapse':'Expand', onclick:e=>{e.stopPropagation();this.toggle(model.id);} }, model.expanded?'▾':'▸')
-            : h('span', { class:'eb-revo-tree-toggle-spacer', 'aria-hidden':'true' }, '');
-          const label = h('button', { type:'button', class:`eb-revo-tree-label${model.id===this.selectedId?' selected':''}`, title:model.name, onclick:e=>{e.stopPropagation();open();} }, `${model.name} ${model.ordered?'☷':'☰'}`);
-          return h('div', { class:'eb-revo-tree-cell', style:{display:'flex',alignItems:'center',gap:'4px',paddingLeft:`${(model.level||0)*16}px`,width:'100%',boxSizing:'border-box'} }, toggle, label);
+            ? h('button', { type:'button', class:'eb-revo-tree-toggle', title:model.expanded?'Collapse':'Expand', 'aria-label':model.expanded?'Collapse':'Expand', style:{padding:'0 3px',margin:'0',minHeight:'20px',lineHeight:'1'}, onclick:e=>{e.stopPropagation();this.toggle(model.id);} }, model.expanded?'▾':'▸')
+            : h('span', { class:'eb-revo-tree-toggle-spacer', 'aria-hidden':'true', style:{display:'inline-block',width:'16px'} }, '');
+          const label = h('button', { type:'button', class:`eb-revo-tree-label${model.id===this.selectedId?' selected':''}`, title:model.name, style:{padding:'2px 4px',margin:'0',border:'0',background:'transparent',color:'#f3f4f6',fontSize:'13px',lineHeight:'1.2',textAlign:'left',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:'0',flex:'1'}, onclick:e=>{e.stopPropagation();open();} }, `${model.name} ${model.ordered?'☷':'☰'}`);
+          return h('div', { class:'eb-revo-tree-cell', style:{display:'flex',alignItems:'center',gap:'2px',paddingLeft:`${(model.level||0)*12}px`,width:'100%',height:'100%',boxSizing:'border-box'} }, toggle, label);
         }
       },
       { prop:'actions', name:'', size:80, readonly:true,
         cellTemplate:(h,props)=>{
           const model=props.model;
-          const button=(label,title,action)=>h('button',{type:'button',class:'eb-revo-tree-action',title,'aria-label':title,onclick:e=>{e.stopPropagation();action?.(model.original);}},label);
-          return h('div',{class:'eb-revo-tree-actions'},button('+','Add sub-list',this.onAdd),button('↑','Move up',node=>this.onMove?.(node,-1)),button('↓','Move down',node=>this.onMove?.(node,1)),button('×','Delete list',this.onDelete));
+          const button=(label,title,action)=>h('button',{type:'button',class:'eb-revo-tree-action',title,'aria-label':title,style:{padding:'0 3px',margin:'0',minHeight:'20px',lineHeight:'1',fontSize:'12px'},onclick:e=>{e.stopPropagation();action?.(model.original);}},label);
+          return h('div',{class:'eb-revo-tree-actions',style:{display:'flex',gap:'1px',alignItems:'center'}},button('+','Add sub-list',this.onAdd),button('↑','Move up',node=>this.onMove?.(node,-1)),button('↓','Move down',node=>this.onMove?.(node,1)),button('×','Delete list',this.onDelete));
         }
       }
     ];
