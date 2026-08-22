@@ -9,6 +9,7 @@ export class RevoTree {
     this.nodes = []; this.expandedIds = new Set(); this.selectedId = null;
     this.grid = document.createElement('revo-grid');
     this.grid.className = 'eb-revo-tree-grid'; this.grid.style.width = '100%'; this.grid.style.height = '100%';
+    this.grid.theme = 'darkCompact';
     this.grid.readonly = true; this.grid.rowHeaders = false;
     this.grid.columns = [
       { prop: 'name', name: 'Lists', size: 280, sortable: false, readonly: true,
@@ -25,16 +26,17 @@ export class RevoTree {
         cellTemplate:(h,props)=>{
           const model=props.model;
           const button=(label,title,action)=>h('button',{type:'button',class:'eb-revo-tree-action',title,'aria-label':title,onclick:e=>{e.stopPropagation();action?.(model.original);}},label);
-          return h('div',{class:'eb-revo-tree-actions'},
-            button('+','Add sub-list',this.onAdd),
-            button('↑','Move up',node=>this.onMove?.(node,-1)),
-            button('↓','Move down',node=>this.onMove?.(node,1)),
-            button('×','Delete list',this.onDelete)
-          );
+          return h('div',{class:'eb-revo-tree-actions'},button('+','Add sub-list',this.onAdd),button('↑','Move up',node=>this.onMove?.(node,-1)),button('↓','Move down',node=>this.onMove?.(node,1)),button('×','Delete list',this.onDelete));
         }
       }
     ];
-    this.grid.addEventListener('cellclick',event=>{const model=event.detail?.model;if(!model)return;this.selectedId=model.id;this.onOpen?.(model.original);this.render();});
+    this.grid.addEventListener('cellclick',event=>{
+      const model=event.detail?.model;if(!model)return;
+      this.selectedId=model.id;
+      this.onOpen?.(model.original);
+      window.dispatchEvent(new CustomEvent('eb:list-selected',{detail:{list:model.original}}));
+      this.render();
+    });
     container.innerHTML=''; container.appendChild(this.grid);
   }
   on() {}
