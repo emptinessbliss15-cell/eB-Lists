@@ -29,7 +29,7 @@ button{cursor:pointer}
         <strong>eB Lists</strong>
         <span class="eb-app-name">Lists</span>
       </div>
-      <div id="headerAuth" class="eb-row" hidden>
+      <div class="eb-row" id="headerAuth" hidden>
         <strong id="user"></strong>
         <button id="signOut" type="button">Sign out</button>
       </div>
@@ -61,16 +61,10 @@ button{cursor:pointer}
     </main>
   </div>
 </div>
-<script type="module">
-  import { loadEBlissTheme } from './theme-loader.js';
-  await loadEBlissTheme();
-</script>
 <script src="./app.js"></script>
 <script>
   const app = document.getElementById('app');
   const headerAuth = document.getElementById('headerAuth');
-  const user = document.getElementById('user');
-  const signOut = document.getElementById('signOut');
   const syncHeaderAuth = () => {
     headerAuth.hidden = app.hidden;
   };
