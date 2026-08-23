@@ -30,8 +30,8 @@ button{cursor:pointer}
         <span class="eb-app-name">Lists</span>
       </div>
       <div id="headerAuth" class="eb-row" hidden>
-        <strong id="headerUser"></strong>
-        <button id="headerSignOut" type="button">Sign out</button>
+        <strong id="user"></strong>
+        <button id="signOut" type="button">Sign out</button>
       </div>
     </div>
   </header>
@@ -46,7 +46,6 @@ button{cursor:pointer}
         <div><button id="signIn">Sign in</button><button id="signUp">Create account</button></div>
       </section>
       <section id="app" class="card" hidden>
-        <div hidden><strong id="user"></strong><button id="signOut" type="button">Sign out</button></div>
         <h2>Lists</h2>
         <div><input id="listName" placeholder="New list name"><label><input id="listOrdered" type="checkbox"> Ordered</label><button id="newList">Create list</button></div>
         <ul id="lists"></ul>
@@ -70,18 +69,12 @@ button{cursor:pointer}
 <script>
   const app = document.getElementById('app');
   const headerAuth = document.getElementById('headerAuth');
-  const headerUser = document.getElementById('headerUser');
-  const headerSignOut = document.getElementById('headerSignOut');
   const user = document.getElementById('user');
   const signOut = document.getElementById('signOut');
   const syncHeaderAuth = () => {
-    const signedIn = !app.hidden;
-    headerAuth.hidden = !signedIn;
-    headerUser.textContent = user.textContent;
+    headerAuth.hidden = app.hidden;
   };
-  headerSignOut.onclick = () => signOut.click();
   new MutationObserver(syncHeaderAuth).observe(app, { attributes: true, attributeFilter: ['hidden'] });
-  new MutationObserver(syncHeaderAuth).observe(user, { childList: true, characterData: true, subtree: true });
   syncHeaderAuth();
 </script>
 </body>
