@@ -29,7 +29,10 @@ button{cursor:pointer}
         <strong>eB Lists</strong>
         <span class="eb-app-name">Lists</span>
       </div>
-      <div></div>
+      <div id="headerAuth" class="eb-row" hidden>
+        <strong id="user"></strong>
+        <button id="signOut" type="button">Sign out</button>
+      </div>
     </div>
   </header>
   <div class="eb-navigation">
@@ -43,7 +46,6 @@ button{cursor:pointer}
         <div><button id="signIn">Sign in</button><button id="signUp">Create account</button></div>
       </section>
       <section id="app" class="card" hidden>
-        <div><strong id="user"></strong> <button id="signOut">Sign out</button></div>
         <h2>Lists</h2>
         <div><input id="listName" placeholder="New list name"><label><input id="listOrdered" type="checkbox"> Ordered</label><button id="newList">Create list</button></div>
         <ul id="lists"></ul>
