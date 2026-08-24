@@ -15,13 +15,15 @@
       <div class="eb-header-inner">
         <div class="cf-build-status" title="Cloudflare deployment status"><span class="cf-build-dot">●</span><span>CF:
             deployed</span></div>
-        <div class="eb-row"><strong>eB Lists</strong><span class="eb-app-name">Lists</span></div>
-
+        <div class="eb-row"><strong>eB Lists</strong><span class="eb-app-name">Lists</span>
+        </div>
         <div>
           <section id="auth" class="card">
           <h2>Sign in</h2><input id="email" type="email" placeholder="Email" autocomplete="email"><input id="password"
             type="password" placeholder="Password" autocomplete="current-password">
           <button id="signIn">Sign in</button><button id="signUp">Create account</button>
+          <div><strong id="user"></strong> <button id="signOut">Sign out</button>
+          </div>
         </section>
         </div>
       </div>
@@ -37,7 +39,6 @@
         aria-orientation="vertical" tabindex="0"></div>
       <main class="eb-main">
         <section id="app" class="card" hidden>
-          <div><strong id="user"></strong> <button id="signOut">Sign out</button></div>
           <div class="eb-row">
             <h2 id="appTitle">Lists</h2>
             <div class="content-actions"><button id="themeAction" title="Theme" aria-label="Theme">◐</button><button
