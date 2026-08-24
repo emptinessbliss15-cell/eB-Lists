@@ -156,8 +156,8 @@
 
   function beginItemEdit(item,textEl){const input=document.createElement('input');input.value=item.text;input.className='eb-item-edit';textEl.replaceWith(input);input.focus();input.select();const save=async()=>{const text=input.value.trim();if(!text){refreshItems();return;}const r=await supabase.from('list_items').update({text}).eq('id',item.id).eq('owner_id',user.id);if(r.error)setStatus(r.error.message);await refreshItems();};input.addEventListener('keydown',e=>{if(e.key==='Enter')save();if(e.key==='Escape')refreshItems();});input.addEventListener('blur',save);}
 
-  async function applySession(session){user=session?.user||null;auth.hidden=!!user;app.hidden=!user;document.getElementById('user').textContent=user?.email||'';if(user)await renderListTree();}
-  userAuth.hidden = !user;
+  async function applySession(session){user=session?.user||null;auth.hidden=!!user;userAuth.hidden = !user;app.hidden=!user;document.getElementById('user').textContent=user?.email||'';if(user)await renderListTree();}
+  
   document.getElementById('signIn').onclick=async()=>{const r=await supabase.auth.signInWithPassword({email:email.value.trim(),password:password.value});if(r.error)return setStatus(r.error.message);await applySession(r.data.session);};
   document.getElementById('signUp').onclick=async()=>{const r=await supabase.auth.signUp({email:email.value.trim(),password:password.value});if(r.error)return setStatus(r.error.message);if(r.data.session)await applySession(r.data.session);else setStatus('Account created. Check your email if confirmation is required.');};
   document.getElementById('signOut').onclick=async()=>{await supabase.auth.signOut({scope:'local'});activeList=null;document.getElementById('listView').hidden=true;document.getElementById('contentFrame').hidden=true;await applySession(null);};
