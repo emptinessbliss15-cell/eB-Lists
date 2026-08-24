@@ -85,7 +85,7 @@ button {
     display: flex;
     align-items: center;
     gap: 6px;
-
+}
 .eb-navigation {
     display: grid !important;
     grid-template-columns: 48px var(--tree-width, 220px) 6px minmax(0, 1fr);
