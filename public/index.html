@@ -16,7 +16,14 @@
         <div class="cf-build-status" title="Cloudflare deployment status"><span class="cf-build-dot">●</span><span>CF:
             deployed</span></div>
         <div class="eb-row"><strong>eB Lists</strong><span class="eb-app-name">Lists</span></div>
-        <div></div>
+
+        <div>
+          <section id="auth" class="card">
+          <h2>Sign in</h2><input id="email" type="email" placeholder="Email" autocomplete="email"><input id="password"
+            type="password" placeholder="Password" autocomplete="current-password">
+          <div><button id="signIn">Sign in</button><button id="signUp">Create account</button></div>
+        </section>
+        </div>
       </div>
     </header>
     <div class="eb-navigation">
@@ -29,11 +36,6 @@
       <div id="treeSplitter" class="eb-tree-splitter" role="separator" aria-label="Resize tree pane"
         aria-orientation="vertical" tabindex="0"></div>
       <main class="eb-main">
-        <section id="auth" class="card">
-          <h2>Sign in</h2><input id="email" type="email" placeholder="Email" autocomplete="email"><input id="password"
-            type="password" placeholder="Password" autocomplete="current-password">
-          <div><button id="signIn">Sign in</button><button id="signUp">Create account</button></div>
-        </section>
         <section id="app" class="card" hidden>
           <div><strong id="user"></strong> <button id="signOut">Sign out</button></div>
           <div class="eb-row">
