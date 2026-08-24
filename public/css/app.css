@@ -75,6 +75,17 @@ button {
     align-items: center;
 }
 
+.eb-header-auth {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+#userAuth {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
 .eb-navigation {
     display: grid !important;
     grid-template-columns: 48px var(--tree-width, 220px) 6px minmax(0, 1fr);
