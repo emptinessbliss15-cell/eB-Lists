@@ -1,0 +1,69 @@
+					fetch: (info, init) => {
+						return event.fetch(info, init);
+*   fetched: import('./types.js').Fetched[];
+async function load_data({ event, event_state, fetched, node, parent, server_data_promise, state, resolve_opts, csr }) {
+				fetch: create_universal_fetch(event, state, fetched, csr, resolve_opts),
+* @param {Pick<import('@sveltejs/kit').RequestEvent, 'fetch' | 'url' | 'request' | 'route'>} event
+* @param {import('./types.js').Fetched[]} fetched
+* @returns {typeof fetch}
+function create_universal_fetch(event, state, fetched, csr, resolve_opts) {
+	const universal_fetch = async (input, init) => {
+		let response = await event.fetch(input, init);
+			async function push_fetched(body, is_b64) {
+				fetched.push({
+					push_fetched(base64_encode(result), true);
+				if (buffer instanceof ArrayBuffer) await push_fetched(base64_encode(bytes), true);
+					await push_fetched(void 0, false);
+				if (!body || typeof body === "string") await push_fetched(body, false);
+		const response = universal_fetch(input, init);
+* @param {import('./types.js').Fetched} fetched
+function serialize_data(fetched, filter, prerendering = false) {
+	for (const [key, value] of fetched.response.headers) {
+		status: fetched.response.status,
+		statusText: fetched.response.statusText,
+		body: fetched.response_body
+		"data-sveltekit-fetched",
+		`data-url="${escape_html(fetched.url, true)}"`
+	if (fetched.is_b64) attrs.push("data-b64");
+	if (fetched.request_headers || fetched.request_body) {
+		if (fetched.request_headers) values.push([...new Headers(fetched.request_headers)].join(","));
+		if (fetched.request_body) values.push(fetched.request_body);
+	if (!prerendering && fetched.method === "GET" && cache_control && !varyAny) {
+*   fetched: Array<import('./types.js').Fetched>;
+async function render_response({ branch, fetched, options, manifest, state, page_config, status, error = null, event, event_state, resolve_opts, action_result, data_serializer, error_components }) {
+		globalThis.fetch;
+	if (page_config.ssr && page_config.csr) body += `\n\t\t\t${fetched.map((item) => serialize_data(item, resolve_opts.filterSerializedResponseHeaders, !!state.prerendering)).join("\n			")}`;
+	/** @type {import('./types.js').Fetched[]} */
+	const fetched = [];
+				fetched,
+			fetched,
+		/** @type {import('./types.js').Fetched[]} */
+		const fetched = [];
+			fetched,
+						fetched,
+						fetched,
+			fetched,
+//#region node_modules/@sveltejs/kit/src/runtime/server/fetch.js
+* @returns {typeof fetch}
+function create_fetch({ event, options, manifest, state, get_cookie_header, set_internal }) {
+	* @type {typeof fetch}
+	const server_fetch = async (info, init) => {
+		const original_request = normalize_fetch_input(info, init, event.url);
+		return options.hooks.handleFetch({
+			fetch: async (info, init) => {
+				const request = normalize_fetch_input(info, init, event.url);
+					return fetch(request);
+					return await fetch(request);
+				if (has_prerendered_path(manifest, base + decoded)) return await fetch(request);
+				const response = await internal_fetch(request, options, manifest, state);
+		const response = server_fetch(input, init);
+function normalize_fetch_input(info, init, url) {
+async function internal_fetch(request, options, manifest, state) {
+		fetch: null,
+	event.fetch = create_fetch({
+				fetch: event.fetch
+			const response = await fetch(url, request);
+				fetched: [],
+				return await fetch(request, { headers });
+			const response = await fetch(request);
+					handleFetch: module.handleFetch || (({ request, fetch }) => fetch(request)),
