@@ -122,14 +122,26 @@
 	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </svelte:head>
 
-<div class="shell">
-	<header>
-		<div class="cf-status"><span>●</span> CF: deployed</div>
-		<div class="brand"><strong>eB Lists</strong><span>Lists</span></div>
+<div class="app-shell">
+	<header class="app-header">
+		<div class="header-left">
+			<button class="icon-button" onclick={refreshLists} title="Refresh">↻</button>
+			<span class="cf-status"><span>●</span> CF: deployed</span>
+		</div>
+		<div class="header-center">
+			<strong>eB Lists</strong>
+			<span>Lists</span>
+		</div>
+		<div class="header-right">
+			{#if user}
+				<span>{user.email}</span>
+				<button onclick={signOut}>Sign out</button>
+			{/if}
+		</div>
 	</header>
 
-	<div class="content">
-		<nav aria-label="Lists">
+	<div class="app-body">
+		<aside class="app-sidebar" aria-label="Lists">
 			{#if user}
 				<div class="tree-title">Lists</div>
 				{#each lists as list}
@@ -140,9 +152,9 @@
 			{:else}
 				<div class="muted">Sign in to view your lists.</div>
 			{/if}
-		</nav>
+		</aside>
 
-		<main>
+		<main class="app-main">
 			{#if !user}
 				<section class="card auth">
 					<h2>Sign in</h2>
@@ -154,7 +166,6 @@
 					</div>
 				</section>
 			{:else}
-				<section class="userbar"><strong>{user.email}</strong><button onclick={signOut}>Sign out</button></section>
 				<section class="card">
 					<h2>Lists</h2>
 					<div class="new-list">
@@ -174,7 +185,9 @@
 						</div>
 						<ol>
 							{#each items as item}
-								<li class:completed={item.completed} onclick={() => toggleItem(item)}>{item.text}</li>
+								<li class:completed={item.completed}>
+									<button type="button" class="item-button" onclick={() => toggleItem(item)}>{item.text}</button>
+								</li>
 							{/each}
 						</ol>
 						<p class="muted">Click an item to toggle complete.</p>
@@ -190,33 +203,34 @@
 	:global(body) { margin: 0; font-family: system-ui, sans-serif; }
 	:global(button), :global(input) { font: inherit; }
 	:global(button) { cursor: pointer; }
-	.shell { min-height: 100vh; }
-	header { height: 56px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; border-bottom: 1px solid #8886; padding: 0 16px; box-sizing: border-box; }
+	.app-shell { min-height: 100vh; }
+	.app-header { height: 56px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 12px; box-sizing: border-box; border-bottom: 1px solid #8886; }
+	.header-left { display: flex; align-items: center; gap: 10px; }
+	.header-center { display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
+	.header-right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; white-space: nowrap; }
+	.icon-button { width: 32px; height: 32px; padding: 0; font-size: 20px; }
 	.cf-status { font-size: 12px; white-space: nowrap; }
 	.cf-status span { font-size: 10px; }
-	.brand { display: flex; align-items: baseline; gap: 10px; }
-	.brand strong { font-size: 18px; }
-	.brand span { opacity: .65; }
-	.content { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: calc(100vh - 56px); }
-	nav { border-right: 1px solid #8886; padding: 12px; }
+	.app-body { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: calc(100vh - 56px); }
+	.app-sidebar { min-width: 0; padding: 12px; border-right: 1px solid #8886; box-sizing: border-box; overflow-y: auto; }
 	.tree-title { font-weight: 700; margin-bottom: 8px; }
 	.tree-item { display: flex; justify-content: space-between; width: 100%; border: 0; background: transparent; text-align: left; padding: 7px 8px; border-radius: 5px; }
 	.tree-item:hover, .tree-item.active { background: #8882; }
 	.tree-item small { opacity: .55; margin-left: 8px; }
-	main { min-width: 0; padding: 16px; }
+	.app-main { min-width: 0; padding: 16px; overflow: auto; }
 	.card { border: 1px solid #8886; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
 	.auth { max-width: 520px; }
 	input { padding: 7px 9px; border: 1px solid #8888; border-radius: 5px; box-sizing: border-box; }
 	.auth input { display: block; width: 100%; margin: 6px 0; }
 	button { padding: 7px 10px; border: 1px solid #8888; border-radius: 5px; background: ButtonFace; }
-	.actions, .new-list, .new-item, .userbar { display: flex; align-items: center; gap: 8px; }
-	.userbar { justify-content: flex-end; margin-bottom: 12px; }
+	.actions, .new-list, .new-item { display: flex; align-items: center; gap: 8px; }
 	.new-list input, .new-item input { flex: 1; min-width: 120px; }
 	h2 { margin-top: 0; }
 	ol { padding-left: 28px; }
-	li { padding: 5px; cursor: pointer; }
-	li.completed { text-decoration: line-through; opacity: .55; }
+	li { padding: 2px 0; }
+	.item-button { width: 100%; border: 0; background: transparent; text-align: left; padding: 5px; }
+	li.completed .item-button { text-decoration: line-through; opacity: .55; }
 	.muted { opacity: .65; font-size: 13px; }
 	.status { color: #a00; }
-	@media (max-width: 650px) { .content { grid-template-columns: 1fr; } nav { border-right: 0; border-bottom: 1px solid #8886; } header { grid-template-columns: 1fr auto; } .cf-status { display: none; } }
+	@media (max-width: 650px) { .app-body { grid-template-columns: 1fr; } .app-sidebar { border-right: 0; border-bottom: 1px solid #8886; } .app-header { grid-template-columns: 1fr auto; } .header-center { display: none; } }
 </style>
