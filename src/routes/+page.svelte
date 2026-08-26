@@ -1,11 +1,7 @@
 <script>
-	import { browser } from '$app/environment';
-	import { createClient } from '@supabase/supabase-js';
+	import { onMount } from 'svelte';
 
-	const supabase = browser
-		? createClient('https://zaabghrczrbqkxrhkinj.supabase.co', 'sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF')
-		: null;
-
+	let supabase = null;
 	let email = '';
 	let password = '';
 	let user = null;
@@ -104,15 +100,26 @@
 		await refreshItems();
 	}
 
-	if (browser) {
+	onMount(async () => {
+		const client = window.supabase?.createClient(
+			'https://zaabghrczrbqkxrhkinj.supabase.co',
+			'sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF'
+		);
+		if (!client) {
+			setStatus('Supabase client failed to load.');
+			return;
+		}
+		supabase = client;
 		supabase.auth.onAuthStateChange((_event, session) => applySession(session));
-		supabase.auth.getSession().then(({ data }) => applySession(data.session));
-	}
+		const { data } = await supabase.auth.getSession();
+		await applySession(data.session);
+	});
 </script>
 
 <svelte:head>
 	<title>eB Lists</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </svelte:head>
 
 <div class="shell">
@@ -165,7 +172,7 @@
 							<input bind:value={itemText} placeholder="Add an item" onkeydown={(e) => e.key === 'Enter' && addItem()} />
 							<button onclick={addItem}>Add</button>
 						</div>
-						<ol class:ordered={activeList.ordered}>
+						<ol>
 							{#each items as item}
 								<li class:completed={item.completed} onclick={() => toggleItem(item)}>{item.text}</li>
 							{/each}
