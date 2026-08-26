@@ -16,6 +16,10 @@
 
 	function setStatus(text = '') { status = text; }
 
+	function refreshPage() {
+		window.location.reload();
+	}
+
 	async function refreshLists() {
 		if (!supabase) return;
 		const { data, error } = await supabase.from('lists').select('*').order('created_at');
@@ -125,7 +129,7 @@
 <div class="app-shell">
 	<header class="app-header">
 		<div class="header-left">
-			<button class="icon-button" onclick={refreshLists} title="Refresh">↻</button>
+			<button class="icon-button" onclick={refreshPage} title="Refresh page" aria-label="Refresh page">↻</button>
 			<span class="cf-status"><span>●</span> CF: deployed</span>
 		</div>
 		<div class="header-center">
