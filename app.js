@@ -16,9 +16,7 @@ let treeGrid = null;
 let itemsGrid = null;
 let cachedLists = [];
 
-function setStatus(text) {
-  status.textContent = text || '';
-}
+function setStatus(text) { status.textContent = text || ''; }
 
 function hideContextMenu() {
   contextMenu.style.display = 'none';
@@ -33,14 +31,11 @@ function showContextMenu(event, actions) {
     const button = document.createElement('button');
     button.type = 'button';
     button.textContent = label;
-    button.onclick = async () => {
-      hideContextMenu();
-      await action();
-    };
+    button.onclick = async () => { hideContextMenu(); await action(); };
     contextMenu.appendChild(button);
   });
-  const width = 180;
-  const height = Math.min(240, actions.length * 38 + 8);
+  const width = 190;
+  const height = Math.min(260, actions.length * 38 + 8);
   contextMenu.style.left = `${Math.max(4, Math.min(event.clientX, window.innerWidth - width - 4))}px`;
   contextMenu.style.top = `${Math.max(4, Math.min(event.clientY, window.innerHeight - height - 4))}px`;
   contextMenu.style.display = 'block';
@@ -48,6 +43,17 @@ function showContextMenu(event, actions) {
 
 document.addEventListener('click', hideContextMenu);
 document.addEventListener('scroll', hideContextMenu, true);
+
+document.addEventListener('contextmenu', event => {
+  if (event.target.closest('#treeGrid tr[data-rowid], #itemsGrid tr[data-rowid]')) return;
+  if (!event.target.closest('#activeList')) return;
+  if (activeList) {
+    showContextMenu(event, [
+      { label: 'Rename list', action: () => renameList(activeList) },
+      { label: 'Delete list', action: () => deleteList(activeList) }
+    ]);
+  }
+});
 
 function rowFromContextEvent(event, grid) {
   const rowEl = event.target.closest('tr[data-rowid]');
@@ -59,24 +65,37 @@ function createTreeGrid() {
   treeGrid?.destroy?.();
   treeGrid = new VanillaGrid('#treeGrid', {
     data: [{ id: 'lists-root', name: 'My Lists', hasChildren: true }],
-    columns: [
-      { key: 'name', label: 'List', sortable: true },
-      {
-        key: 'open',
-        label: '',
-        sortable: false,
-        type: 'button',
-        button: {
-          text: 'Open',
-          onClick: row => {
-            if (row.id !== 'lists-root') openListById(row.id);
-          }
+    columns: [{
+      key: 'name', label: 'List', sortable: true,
+      render: (value, row) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'eb-tree-cell';
+        if (row.hasChildren) {
+          const arrow = document.createElement('button');
+          arrow.type = 'button';
+          arrow.className = 'eb-tree-arrow';
+          arrow.textContent = row.expanded ? '▼' : '▶';
+          arrow.setAttribute('aria-label', row.expanded ? 'Collapse' : 'Expand');
+          arrow.addEventListener('click', event => {
+            event.stopPropagation();
+            if (row.expanded) treeGrid?.collapseRow?.(row.id);
+            else treeGrid?.expandRow?.(row.id);
+          });
+          wrap.appendChild(arrow);
+        } else {
+          const spacer = document.createElement('span');
+          spacer.className = 'eb-tree-arrow-spacer';
+          wrap.appendChild(spacer);
         }
+        const text = document.createElement('span');
+        text.textContent = value ?? '';
+        wrap.appendChild(text);
+        return wrap;
       }
-    ],
+    }],
     pagination: false,
     filterable: false,
-    contextMenu: false,
+    contextMenu: true,
     tree: {
       enabled: true,
       childrenKey: 'children',
@@ -92,6 +111,9 @@ function createTreeGrid() {
         hasChildren: false,
         list
       }));
+    },
+    onRowClick: row => {
+      if (row.id !== 'lists-root') openListById(row.id);
     }
   });
 }
@@ -104,10 +126,7 @@ function createItemsGrid() {
       { key: 'position', label: '#', type: 'number', sortable: true },
       { key: 'text', label: 'Item', sortable: true },
       {
-        key: 'completed',
-        label: 'Complete',
-        type: 'custom',
-        sortable: true,
+        key: 'completed', label: 'Complete', type: 'custom', sortable: true,
         render: (value, row) => {
           const checkbox = document.createElement('input');
           checkbox.type = 'checkbox';
@@ -125,36 +144,24 @@ function createItemsGrid() {
     editableRows: true,
     rowDragDrop: true,
     keyboardNavigation: true,
-    contextMenu: false,
+    contextMenu: true,
     onRowEdit: async (row, field, newValue, oldValue) => {
       if (field !== 'text' || newValue === oldValue || !activeList) return;
       const text = String(newValue).trim();
       if (!text) return refreshItems();
-      const result = await supabase.from('list_items')
-        .update({ text })
-        .eq('id', row.id)
-        .eq('owner_id', user.id);
-      if (result.error) setStatus(result.error.message);
-      else await refreshItems();
+      const result = await supabase.from('list_items').update({ text }).eq('id', row.id).eq('owner_id', user.id);
+      if (result.error) setStatus(result.error.message); else await refreshItems();
     },
     onRowDrop: async (draggedRow, targetRow, position) => {
       if (!activeList || !draggedRow || !targetRow || draggedRow.id === targetRow.id) return;
-      const { data, error } = await supabase.from('list_items')
-        .select('id, position')
-        .eq('list_id', activeList.id)
-        .order('position');
+      const { data, error } = await supabase.from('list_items').select('id, position').eq('list_id', activeList.id).order('position');
       if (error) return setStatus(error.message);
-
       const ids = data.map(row => row.id).filter(id => id !== draggedRow.id);
       const targetIndex = ids.indexOf(targetRow.id);
       const insertAt = Math.max(0, position === 'after' ? targetIndex + 1 : targetIndex);
       ids.splice(insertAt, 0, draggedRow.id);
-
       for (let i = 0; i < ids.length; i++) {
-        const result = await supabase.from('list_items')
-          .update({ position: i })
-          .eq('id', ids[i])
-          .eq('owner_id', user.id);
+        const result = await supabase.from('list_items').update({ position: i }).eq('id', ids[i]).eq('owner_id', user.id);
         if (result.error) return setStatus(result.error.message);
       }
       await refreshItems();
@@ -171,23 +178,14 @@ async function refreshLists() {
 
 async function refreshItems() {
   if (!activeList || !itemsGrid) return;
-  const { data, error } = await supabase.from('list_items')
-    .select('*')
-    .eq('list_id', activeList.id)
-    .order('position')
-    .order('created_at');
+  const { data, error } = await supabase.from('list_items').select('*').eq('list_id', activeList.id).order('position').order('created_at');
   if (error) return setStatus(error.message);
-  itemsGrid.setData((data || []).map(item => ({
-    ...item,
-    position: item.position ?? 0
-  })));
+  itemsGrid.setData((data || []).map(item => ({ ...item, position: item.position ?? 0 })));
 }
 
 function showActiveListName() {
   document.getElementById('activeList').textContent = activeList?.name || 'Select a list';
-  document.getElementById('listMode').textContent = activeList
-    ? (activeList.ordered ? 'Ordered' : 'Unordered')
-    : '';
+  document.getElementById('listMode').textContent = activeList ? (activeList.ordered ? 'Ordered' : 'Unordered') : '';
 }
 
 async function openListById(id) {
@@ -206,10 +204,7 @@ async function renameList(list) {
   if (!list || !user) return;
   const name = window.prompt('Rename list', list.name)?.trim();
   if (!name || name === list.name) return;
-  const result = await supabase.from('lists')
-    .update({ name })
-    .eq('id', list.id)
-    .eq('owner_id', user.id);
+  const result = await supabase.from('lists').update({ name }).eq('id', list.id).eq('owner_id', user.id);
   if (result.error) return setStatus(result.error.message);
   if (activeList?.id === list.id) activeList.name = name;
   await refreshLists();
@@ -219,10 +214,7 @@ async function renameList(list) {
 async function deleteList(list) {
   if (!list || !user) return;
   if (!window.confirm(`Delete "${list.name}"?`)) return;
-  const result = await supabase.from('lists')
-    .delete()
-    .eq('id', list.id)
-    .eq('owner_id', user.id);
+  const result = await supabase.from('lists').delete().eq('id', list.id).eq('owner_id', user.id);
   if (result.error) return setStatus(result.error.message);
   if (activeList?.id === list.id) {
     activeList = null;
@@ -232,35 +224,18 @@ async function deleteList(list) {
   await refreshLists();
 }
 
-async function renameActiveList() {
-  await renameList(activeList);
-}
-
-async function deleteActiveList() {
-  await deleteList(activeList);
-}
-
 async function deleteItem(item) {
   if (!item || !user) return;
   if (!window.confirm(`Delete "${item.text}"?`)) return;
-  const result = await supabase.from('list_items')
-    .delete()
-    .eq('id', item.id)
-    .eq('owner_id', user.id);
+  const result = await supabase.from('list_items').delete().eq('id', item.id).eq('owner_id', user.id);
   if (result.error) return setStatus(result.error.message);
   await refreshItems();
 }
 
 async function setItemCompleted(item, completed) {
   if (!item || !user) return;
-  const result = await supabase.from('list_items')
-    .update({ completed: !!completed })
-    .eq('id', item.id)
-    .eq('owner_id', user.id);
-  if (result.error) {
-    setStatus(result.error.message);
-    return refreshItems();
-  }
+  const result = await supabase.from('list_items').update({ completed: !!completed }).eq('id', item.id).eq('owner_id', user.id);
+  if (result.error) { setStatus(result.error.message); await refreshItems(); return; }
   item.completed = !!completed;
 }
 
@@ -268,44 +243,42 @@ function setupContextMenus() {
   treeHost.addEventListener('contextmenu', event => {
     const row = rowFromContextEvent(event, treeGrid);
     if (!row) return;
+    const list = row.list || cachedLists.find(item => item.id === row.id);
     if (row.id === 'lists-root') {
       showContextMenu(event, [
         { label: 'New list', action: () => document.getElementById('listName').focus() },
         { label: 'Refresh lists', action: refreshLists }
       ]);
-      return;
+    } else if (list) {
+      showContextMenu(event, [
+        { label: 'Open list', action: () => openList(list) },
+        { label: 'Rename list', action: () => renameList(list) },
+        { label: 'Delete list', action: () => deleteList(list) }
+      ]);
     }
-    const list = row.list || cachedLists.find(item => item.id === row.id);
-    if (!list) return;
-    showContextMenu(event, [
-      { label: 'Open list', action: () => openList(list) },
-      { label: 'Rename list', action: () => renameList(list) },
-      { label: 'Delete list', action: () => deleteList(list) }
-    ]);
-  });
+  }, true);
 
   itemsHost.addEventListener('contextmenu', event => {
     const row = rowFromContextEvent(event, itemsGrid);
     if (!row) return;
-    activeItem = row;
     showContextMenu(event, [
-      { label: 'Edit item', action: () => itemsGrid?.startCellEdit?.(row.id, 'text') || setStatus('Double-click the item text to edit.') },
+      { label: 'Edit item', action: () => setStatus('Double-click the item text to edit.') },
       { label: row.completed ? 'Mark incomplete' : 'Mark complete', action: () => setItemCompleted(row, !row.completed) },
       { label: 'Delete item', action: () => deleteItem(row) }
     ]);
-  });
+  }, true);
 
   itemsHost.addEventListener('click', event => {
     const checkbox = event.target.closest('.item-complete-checkbox');
     if (checkbox) event.stopPropagation();
-  });
+  }, true);
 
   itemsHost.addEventListener('change', async event => {
     const checkbox = event.target.closest('.item-complete-checkbox');
     if (!checkbox) return;
     const row = itemsGrid?.rowById?.get(Number(checkbox.closest('tr')?.dataset.rowid));
     if (row) await setItemCompleted(row, checkbox.checked);
-  });
+  }, true);
 }
 
 async function applySession(session) {
@@ -317,83 +290,46 @@ async function applySession(session) {
     createItemsGrid();
     await refreshLists();
   } else {
-    activeList = null;
-    activeItem = null;
-    cachedLists = [];
-    treeGrid?.destroy?.();
-    itemsGrid?.setData?.([]);
+    activeList = null; activeItem = null; cachedLists = [];
+    treeGrid?.destroy?.(); itemsGrid?.setData?.([]);
   }
 }
 
 document.getElementById('signIn').onclick = async () => {
-  const result = await supabase.auth.signInWithPassword({
-    email: email.value.trim(),
-    password: password.value
-  });
+  const result = await supabase.auth.signInWithPassword({ email: email.value.trim(), password: password.value });
   if (result.error) return setStatus(result.error.message);
-  setStatus('');
-  await applySession(result.data.session);
+  setStatus(''); await applySession(result.data.session);
 };
 
 document.getElementById('signUp').onclick = async () => {
-  const result = await supabase.auth.signUp({
-    email: email.value.trim(),
-    password: password.value
-  });
+  const result = await supabase.auth.signUp({ email: email.value.trim(), password: password.value });
   if (result.error) return setStatus(result.error.message);
   if (result.data.session) await applySession(result.data.session);
   else setStatus('Account created. Check your email if confirmation is required.');
 };
 
-document.getElementById('signOut').onclick = async () => {
-  await supabase.auth.signOut({ scope: 'local' });
-  await applySession(null);
-};
-
+document.getElementById('signOut').onclick = async () => { await supabase.auth.signOut({ scope: 'local' }); await applySession(null); };
 document.getElementById('refreshLists').onclick = refreshLists;
 
 document.getElementById('newList').onclick = async () => {
-  const input = document.getElementById('listName');
-  const name = input.value.trim();
+  const input = document.getElementById('listName'); const name = input.value.trim();
   if (!name || !user) return;
   const ordered = document.getElementById('listOrdered').checked;
   const result = await supabase.from('lists').insert({ name, owner_id: user.id, ordered });
   if (result.error) return setStatus(result.error.message);
-  input.value = '';
-  document.getElementById('listOrdered').checked = false;
-  await refreshLists();
+  input.value = ''; document.getElementById('listOrdered').checked = false; await refreshLists();
 };
 
 document.getElementById('newItem').onclick = async () => {
-  const input = document.getElementById('item');
-  const text = input.value.trim();
+  const input = document.getElementById('item'); const text = input.value.trim();
   if (!text || !activeList || !user) return;
-  const latest = await supabase.from('list_items')
-    .select('position')
-    .eq('list_id', activeList.id)
-    .order('position', { ascending: false })
-    .limit(1);
+  const latest = await supabase.from('list_items').select('position').eq('list_id', activeList.id).order('position', { ascending: false }).limit(1);
   if (latest.error) return setStatus(latest.error.message);
   const position = (latest.data?.[0]?.position ?? -1) + 1;
-  const result = await supabase.from('list_items').insert({
-    list_id: activeList.id,
-    owner_id: user.id,
-    text,
-    position,
-    completed: false
-  });
+  const result = await supabase.from('list_items').insert({ list_id: activeList.id, owner_id: user.id, text, position, completed: false });
   if (result.error) return setStatus(result.error.message);
-  input.value = '';
-  await refreshItems();
+  input.value = ''; await refreshItems();
 };
-
-document.getElementById('activeList').addEventListener('contextmenu', event => {
-  if (!activeList) return;
-  showContextMenu(event, [
-    { label: 'Rename list', action: renameActiveList },
-    { label: 'Delete list', action: deleteActiveList }
-  ]);
-});
 
 setupContextMenus();
 supabase.auth.onAuthStateChange((_event, session) => applySession(session));
