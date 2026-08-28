@@ -11,6 +11,7 @@ const contextMenu = document.getElementById('contextMenu');
 
 let user = null;
 let activeList = null;
+let activeItem = null;
 let treeGrid = null;
 let itemsGrid = null;
 let cachedLists = [];
@@ -26,8 +27,9 @@ function hideContextMenu() {
 
 function showContextMenu(event, actions) {
   event.preventDefault();
+  event.stopPropagation();
   contextMenu.innerHTML = '';
-  actions.forEach(({ label, action }) => {
+  actions.filter(Boolean).forEach(({ label, action }) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.textContent = label;
@@ -37,12 +39,21 @@ function showContextMenu(event, actions) {
     };
     contextMenu.appendChild(button);
   });
-  contextMenu.style.left = `${Math.min(event.clientX, window.innerWidth - 180)}px`;
-  contextMenu.style.top = `${Math.min(event.clientY, window.innerHeight - 140)}px`;
+  const width = 180;
+  const height = Math.min(240, actions.length * 38 + 8);
+  contextMenu.style.left = `${Math.max(4, Math.min(event.clientX, window.innerWidth - width - 4))}px`;
+  contextMenu.style.top = `${Math.max(4, Math.min(event.clientY, window.innerHeight - height - 4))}px`;
   contextMenu.style.display = 'block';
 }
 
 document.addEventListener('click', hideContextMenu);
+document.addEventListener('scroll', hideContextMenu, true);
+
+function rowFromContextEvent(event, grid) {
+  const rowEl = event.target.closest('tr[data-rowid]');
+  if (!rowEl || !grid) return null;
+  return grid.rowById?.get(Number(rowEl.dataset.rowid)) || null;
+}
 
 function createTreeGrid() {
   treeGrid?.destroy?.();
@@ -65,7 +76,7 @@ function createTreeGrid() {
     ],
     pagination: false,
     filterable: false,
-    contextMenu: true,
+    contextMenu: false,
     tree: {
       enabled: true,
       childrenKey: 'children',
@@ -94,10 +105,18 @@ function createItemsGrid() {
       { key: 'text', label: 'Item', sortable: true },
       {
         key: 'completed',
-        label: 'Done',
+        label: 'Complete',
         type: 'custom',
         sortable: true,
-        render: value => value ? '✓' : ''
+        render: (value, row) => {
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = !!value;
+          checkbox.className = 'item-complete-checkbox';
+          checkbox.dataset.itemId = row.id;
+          checkbox.setAttribute('aria-label', `Complete ${row.text || 'item'}`);
+          return checkbox;
+        }
       }
     ],
     filterable: true,
@@ -106,11 +125,13 @@ function createItemsGrid() {
     editableRows: true,
     rowDragDrop: true,
     keyboardNavigation: true,
-    contextMenu: true,
+    contextMenu: false,
     onRowEdit: async (row, field, newValue, oldValue) => {
       if (field !== 'text' || newValue === oldValue || !activeList) return;
+      const text = String(newValue).trim();
+      if (!text) return refreshItems();
       const result = await supabase.from('list_items')
-        .update({ text: String(newValue).trim() })
+        .update({ text })
         .eq('id', row.id)
         .eq('owner_id', user.id);
       if (result.error) setStatus(result.error.message);
@@ -181,32 +202,110 @@ async function openList(list) {
   await refreshItems();
 }
 
-async function renameActiveList() {
-  if (!activeList) return;
-  const name = window.prompt('Rename list', activeList.name)?.trim();
-  if (!name || name === activeList.name) return;
+async function renameList(list) {
+  if (!list || !user) return;
+  const name = window.prompt('Rename list', list.name)?.trim();
+  if (!name || name === list.name) return;
   const result = await supabase.from('lists')
     .update({ name })
-    .eq('id', activeList.id)
+    .eq('id', list.id)
     .eq('owner_id', user.id);
   if (result.error) return setStatus(result.error.message);
-  activeList.name = name;
+  if (activeList?.id === list.id) activeList.name = name;
+  await refreshLists();
   showActiveListName();
+}
+
+async function deleteList(list) {
+  if (!list || !user) return;
+  if (!window.confirm(`Delete "${list.name}"?`)) return;
+  const result = await supabase.from('lists')
+    .delete()
+    .eq('id', list.id)
+    .eq('owner_id', user.id);
+  if (result.error) return setStatus(result.error.message);
+  if (activeList?.id === list.id) {
+    activeList = null;
+    document.getElementById('listView').hidden = true;
+    showActiveListName();
+  }
   await refreshLists();
 }
 
+async function renameActiveList() {
+  await renameList(activeList);
+}
+
 async function deleteActiveList() {
-  if (!activeList) return;
-  if (!window.confirm(`Delete "${activeList.name}"?`)) return;
-  const result = await supabase.from('lists')
+  await deleteList(activeList);
+}
+
+async function deleteItem(item) {
+  if (!item || !user) return;
+  if (!window.confirm(`Delete "${item.text}"?`)) return;
+  const result = await supabase.from('list_items')
     .delete()
-    .eq('id', activeList.id)
+    .eq('id', item.id)
     .eq('owner_id', user.id);
   if (result.error) return setStatus(result.error.message);
-  activeList = null;
-  document.getElementById('listView').hidden = true;
-  showActiveListName();
-  await refreshLists();
+  await refreshItems();
+}
+
+async function setItemCompleted(item, completed) {
+  if (!item || !user) return;
+  const result = await supabase.from('list_items')
+    .update({ completed: !!completed })
+    .eq('id', item.id)
+    .eq('owner_id', user.id);
+  if (result.error) {
+    setStatus(result.error.message);
+    return refreshItems();
+  }
+  item.completed = !!completed;
+}
+
+function setupContextMenus() {
+  treeHost.addEventListener('contextmenu', event => {
+    const row = rowFromContextEvent(event, treeGrid);
+    if (!row) return;
+    if (row.id === 'lists-root') {
+      showContextMenu(event, [
+        { label: 'New list', action: () => document.getElementById('listName').focus() },
+        { label: 'Refresh lists', action: refreshLists }
+      ]);
+      return;
+    }
+    const list = row.list || cachedLists.find(item => item.id === row.id);
+    if (!list) return;
+    showContextMenu(event, [
+      { label: 'Open list', action: () => openList(list) },
+      { label: 'Rename list', action: () => renameList(list) },
+      { label: 'Delete list', action: () => deleteList(list) }
+    ]);
+  });
+
+  itemsHost.addEventListener('contextmenu', event => {
+    const row = rowFromContextEvent(event, itemsGrid);
+    if (!row) return;
+    activeItem = row;
+    showContextMenu(event, [
+      { label: 'Edit item', action: () => itemsGrid?.startCellEdit?.(row.id, 'text') || setStatus('Double-click the item text to edit.') },
+      { label: row.completed ? 'Mark incomplete' : 'Mark complete', action: () => setItemCompleted(row, !row.completed) },
+      { label: 'Delete item', action: () => deleteItem(row) }
+    ]);
+  });
+
+  itemsHost.addEventListener('click', event => {
+    const checkbox = event.target.closest('.item-complete-checkbox');
+    if (checkbox) event.stopPropagation();
+  });
+
+  itemsHost.addEventListener('change', async event => {
+    const checkbox = event.target.closest('.item-complete-checkbox');
+    if (!checkbox) return;
+    const row = itemsGrid?.rowById?.get(Number(checkbox.closest('tr')?.dataset.rowid));
+    if (row) await setItemCompleted(row, checkbox.checked);
+  });
 }
 
 async function applySession(session) {
@@ -219,6 +318,7 @@ async function applySession(session) {
     await refreshLists();
   } else {
     activeList = null;
+    activeItem = null;
     cachedLists = [];
     treeGrid?.destroy?.();
     itemsGrid?.setData?.([]);
@@ -279,7 +379,8 @@ document.getElementById('newItem').onclick = async () => {
     list_id: activeList.id,
     owner_id: user.id,
     text,
-    position
+    position,
+    completed: false
   });
   if (result.error) return setStatus(result.error.message);
   input.value = '';
@@ -294,5 +395,6 @@ document.getElementById('activeList').addEventListener('contextmenu', event => {
   ]);
 });
 
+setupContextMenus();
 supabase.auth.onAuthStateChange((_event, session) => applySession(session));
 supabase.auth.getSession().then(({ data }) => applySession(data.session));
