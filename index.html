@@ -31,6 +31,9 @@ button{cursor:pointer}
 .context-menu{position:fixed;z-index:10000;display:none;min-width:180px;background:white;color:#222;border:1px solid #bbb;border-radius:6px;box-shadow:0 4px 16px #0003;padding:4px}
 .context-menu button{display:block;width:100%;text-align:left;border:0;background:transparent;margin:0;padding:8px 10px}
 .context-menu button:hover{background:#eee}
+.eb-vg-context-menu{min-width:180px;background:white;color:#222;border:1px solid #bbb;border-radius:6px;box-shadow:0 4px 16px #0003;padding:4px}
+.eb-vg-context-menu .vg-context-menu-item{display:block;padding:8px 10px;cursor:pointer;white-space:nowrap}
+.eb-vg-context-menu .vg-context-menu-item:hover{background:#eee}
 @media(max-width:800px){.eb-navigation{grid-template-columns:1fr}.eb-tree-card{height:auto}}
 </style>
 </head>
@@ -84,6 +87,7 @@ button{cursor:pointer}
 </div>
 <div id="contextMenu" class="context-menu"></div>
 <script src="https://cdn.jsdelivr.net/gh/SimonWaldherr/vanillagrid.js@81c32cae137de90703cdfe5d3b3eb33724c0552e/vanillagrid.js"></script>
+<script src="./vanilla-grid-context.js"></script>
 <script src="./app.js"></script>
 <script>
   const app = document.getElementById('app');
