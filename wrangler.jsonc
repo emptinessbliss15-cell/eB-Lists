@@ -1,11 +1,12 @@
 {
-  "name": "eb-lists",
-  "main": "worker.js",
+ "name": "eb-lists-sveltkit",
+ "main": ".svelte-kit/cloudflare/_worker.js",
   "compatibility_date": "2026-08-15",
   "version_metadata": {
     "binding": "CF_VERSION_METADATA"
   },
   "assets": {
-    "directory": "./public"
+    "directory": "./.svelte-kit/cloudflare",
+    "binding": "ASSETS"
   }
 }
