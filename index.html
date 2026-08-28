@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>eB Lists</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/SimonWaldherr/vanillagrid.js@81c32cae137de90703cdfe5d3b3eb33724c0552e/vanillagrid.css">
 <style>
 body{margin:0;font-family:system-ui}
 input,button,select{font:inherit;padding:6px;margin:3px}
@@ -12,10 +13,21 @@ button{cursor:pointer}
 .card{border:1px solid #8886;border-radius:8px;padding:12px;margin:12px}
 .muted{opacity:.7}
 .eb-row{display:flex;align-items:center;gap:8px}
-.eb-main ul{padding-left:20px}
-.ordered-items{list-style-type:decimal}
 .cf-build-status{font-size:12px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .cf-build-dot{font-size:11px}
+.eb-navigation{display:grid;grid-template-columns:280px minmax(0,1fr);gap:12px;padding:12px}
+.eb-tree,.eb-main{min-width:0}
+.eb-tree-card{margin:0;height:calc(100vh - 90px);box-sizing:border-box}
+.eb-main-card{margin:0}
+#treeGrid,#itemsGrid{width:100%}
+#treeGrid{min-height:260px}
+#itemsGrid{min-height:360px}
+.eb-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.eb-list-title{display:flex;align-items:center;gap:8px}
+.context-menu{position:fixed;z-index:10000;display:none;min-width:150px;background:white;border:1px solid #bbb;border-radius:6px;box-shadow:0 4px 16px #0003;padding:4px}
+.context-menu button{display:block;width:100%;text-align:left;border:0;background:transparent;margin:0}
+.context-menu button:hover{background:#eee}
+@media(max-width:800px){.eb-navigation{grid-template-columns:1fr}.eb-tree-card{height:auto}}
 </style>
 </head>
 <body>
@@ -36,38 +48,43 @@ button{cursor:pointer}
     </div>
   </header>
   <div class="eb-navigation">
-    <nav id="tree" class="eb-tree" aria-label="Context"></nav>
-    <main class="eb-main">
-      <div id="subheader" class="eb-subheader" style="margin:-8px -8px 8px"></div>
-      <section id="auth" class="card">
+    <aside class="eb-tree card eb-tree-card">
+      <div class="eb-toolbar"><strong>Lists</strong><button id="refreshLists" type="button" title="Refresh">↻</button></div>
+      <div id="treeGrid" aria-label="Lists navigation"></div>
+    </aside>
+    <main class="eb-main card eb-main-card">
+      <section id="auth">
         <h2>Sign in</h2>
         <input id="email" type="email" placeholder="Email" autocomplete="email">
         <input id="password" type="password" placeholder="Password" autocomplete="current-password">
         <div><button id="signIn">Sign in</button><button id="signUp">Create account</button></div>
       </section>
-      <section id="app" class="card" hidden>
-        <h2>Lists</h2>
-        <div><input id="listName" placeholder="New list name"><label><input id="listOrdered" type="checkbox"> Ordered</label><button id="newList">Create list</button></div>
-        <ul id="lists"></ul>
+      <section id="app" hidden>
+        <div class="eb-list-title"><h2 id="activeList">Select a list</h2><span class="muted" id="listMode"></span></div>
+        <div class="eb-toolbar">
+          <input id="listName" placeholder="New list name">
+          <label><input id="listOrdered" type="checkbox"> Ordered</label>
+          <button id="newList">Create list</button>
+        </div>
         <div id="listView" hidden>
-          <h2 id="activeList"></h2>
-          <div class="muted" id="listMode"></div>
-          <input id="item" placeholder="Add an item"><button id="newItem">Add</button>
-          <ul id="items"></ul>
-          <p class="muted">Click an item to toggle complete.</p>
+          <div class="eb-toolbar">
+            <input id="item" placeholder="Add an item">
+            <button id="newItem">Add</button>
+          </div>
+          <div id="itemsGrid" aria-label="List items"></div>
         </div>
       </section>
       <p id="status" class="muted"></p>
     </main>
   </div>
 </div>
+<div id="contextMenu" class="context-menu"></div>
+<script src="https://cdn.jsdelivr.net/gh/SimonWaldherr/vanillagrid.js@81c32cae137de90703cdfe5d3b3eb33724c0552e/vanillagrid.js"></script>
 <script src="./app.js"></script>
 <script>
   const app = document.getElementById('app');
   const headerAuth = document.getElementById('headerAuth');
-  const syncHeaderAuth = () => {
-    headerAuth.hidden = app.hidden;
-  };
+  const syncHeaderAuth = () => { headerAuth.hidden = app.hidden; };
   new MutationObserver(syncHeaderAuth).observe(app, { attributes: true, attributeFilter: ['hidden'] });
   syncHeaderAuth();
 </script>
