@@ -1,147 +1,133 @@
-const supabase = window.supabase.createClient('https://zaabghrczrbqkxrhkinj.supabase.co', 'sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF');
-const status = document.getElementById('status');
-const app = document.getElementById('app');
-const auth = document.getElementById('auth');
-const email = document.getElementById('email');
-const password = document.getElementById('password');
-const lists = document.getElementById('lists');
-const items = document.getElementById('items');
-let user = null;
-let activeList = null;
+// eB Lists — clean-js baseline
+// Browser-native JavaScript only. Supabase is accessed through the REST/Auth HTTP APIs.
 
-function setStatus(text) { status.textContent = text || ''; }
+const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';
 
-async function refreshLists() {
-  const { data, error } = await supabase.from('lists').select('*').order('created_at');
-  if (error) return setStatus(error.message);
-  lists.innerHTML = '';
-  data.forEach(list => {
+const $ = (id) => document.getElementById(id);
+const state = { session: null, lists: [], activeList: null, items: [] };
+
+async function supabase(path, options = {}) {
+  const headers = {
+    apikey: SUPABASE_ANON_KEY,
+    'Content-Type': 'application/json',
+    ...(options.headers || {})
+  };
+  if (state.session?.access_token) headers.Authorization = `Bearer ${state.session.access_token}`;
+  const response = await fetch(`${SUPABASE_URL}${path}`, { ...options, headers });
+  const text = await response.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  if (!response.ok) throw new Error(data?.message || data?.error_description || text || response.statusText);
+  return data;
+}
+
+function setStatus(message = '') { $('status').textContent = message; }
+function setSignedIn(user) {
+  $('auth').hidden = !!user;
+  $('app').hidden = !user;
+  $('headerAuth').hidden = !user;
+  $('user').textContent = user?.email || '';
+}
+
+async function signIn() {
+  try {
+    setStatus('Signing in…');
+    const data = await supabase('/auth/v1/token?grant_type=password', {
+      method: 'POST', body: JSON.stringify({ email: $('email').value, password: $('password').value })
+    });
+    state.session = data;
+    localStorage.setItem('eb_session', JSON.stringify(data));
+    setSignedIn(data.user);
+    await loadLists();
+    setStatus('');
+  } catch (error) { setStatus(error.message); }
+}
+
+async function signUp() {
+  try {
+    setStatus('Creating account…');
+    await supabase('/auth/v1/signup', { method: 'POST', body: JSON.stringify({ email: $('email').value, password: $('password').value }) });
+    setStatus('Account created. Check your email if confirmation is required.');
+  } catch (error) { setStatus(error.message); }
+}
+
+async function signOut() {
+  try { if (state.session) await supabase('/auth/v1/logout', { method: 'POST' }); } catch (_) {}
+  state.session = null; state.lists = []; state.activeList = null; state.items = [];
+  localStorage.removeItem('eb_session');
+  setSignedIn(null); renderLists(); renderItems(); setStatus('');
+}
+
+async function loadLists() {
+  state.lists = await supabase('/rest/v1/lists?select=*&order=position.asc,created_at.asc');
+  renderLists();
+}
+
+function renderLists() {
+  const ul = $('lists'); ul.replaceChildren(); $('tree').replaceChildren();
+  const treeList = document.createElement('ul');
+  for (const list of state.lists) {
     const li = document.createElement('li');
-    li.textContent = `${list.name} ${list.ordered ? '· ordered' : '· unordered'}`;
-    li.onclick = () => openList(list);
-    lists.appendChild(li);
-  });
+    const button = document.createElement('button'); button.type = 'button'; button.textContent = list.name;
+    button.onclick = () => selectList(list);
+    li.append(button); ul.append(li);
+    const treeLi = li.cloneNode(true); treeLi.querySelector('button').onclick = () => selectList(list); treeList.append(treeLi);
+  }
+  ul.append(); $('tree').append(treeList);
 }
 
-async function renameActiveList() {
-  if (!activeList) return;
-  const input = document.getElementById('activeListEdit');
-  const name = input.value.trim();
-  if (!name) return;
-  const result = await supabase.from('lists').update({ name }).eq('id', activeList.id).eq('owner_id', user.id);
-  if (result.error) return setStatus(result.error.message);
-  activeList.name = name;
-  showActiveListName();
-  await refreshLists();
-  setStatus('');
+async function selectList(list) {
+  state.activeList = list; $('listView').hidden = false; $('activeList').textContent = list.name;
+  $('listMode').textContent = list.ordered ? 'Ordered' : 'Unordered';
+  try {
+    state.items = await supabase(`/rest/v1/items?select=*&list_id=eq.${encodeURIComponent(list.id)}&order=position.asc,created_at.asc`);
+    renderItems();
+  } catch (error) { setStatus(error.message); }
 }
 
-function showActiveListName() {
-  const title = document.getElementById('activeList');
-  title.innerHTML = '';
-  const name = document.createElement('span');
-  name.textContent = activeList.name;
-  name.title = 'Click to rename';
-  name.className = 'editable-list-name';
-  name.onclick = beginRename;
-  title.appendChild(name);
+function renderItems() {
+  const ul = $('items'); ul.replaceChildren();
+  for (const item of state.items) {
+    const li = document.createElement('li'); li.className = 'eb-item';
+    const button = document.createElement('button'); button.type = 'button'; button.textContent = item.completed ? '✓' : '○';
+    const text = document.createElement('span'); text.textContent = item.text; if (item.completed) text.className = 'done';
+    button.onclick = () => toggleItem(item); li.append(button, text); ul.append(li);
+  }
 }
 
-function beginRename() {
-  if (!activeList || document.getElementById('activeListEdit')) return;
-  const title = document.getElementById('activeList');
-  title.innerHTML = '';
-  const input = document.createElement('input');
-  input.id = 'activeListEdit';
-  input.value = activeList.name;
-  input.setAttribute('aria-label', 'List name');
-  title.appendChild(input);
-  input.focus();
-  input.select();
-  input.addEventListener('keydown', event => {
-    if (event.key === 'Enter') renameActiveList();
-    if (event.key === 'Escape') showActiveListName();
-  });
-  input.addEventListener('blur', () => renameActiveList());
+async function toggleItem(item) {
+  try {
+    await supabase(`/rest/v1/items?id=eq.${encodeURIComponent(item.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ completed: !item.completed }) });
+    item.completed = !item.completed; renderItems();
+  } catch (error) { setStatus(error.message); }
 }
 
-async function openList(list) {
-  activeList = list;
-  showActiveListName();
-  document.getElementById('listMode').textContent = list.ordered ? 'Ordered' : 'Unordered';
-  items.classList.toggle('ordered-items', !!list.ordered);
-  document.getElementById('listView').hidden = false;
-  await refreshItems();
+async function createList() {
+  const name = $('listName').value.trim(); if (!name) return;
+  try {
+    await supabase('/rest/v1/lists', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ name, ordered: $('listOrdered').checked }) });
+    $('listName').value = ''; await loadLists();
+  } catch (error) { setStatus(error.message); }
 }
 
-async function refreshItems() {
-  const { data, error } = await supabase.from('list_items').select('*').eq('list_id', activeList.id).order('position').order('created_at');
-  if (error) return setStatus(error.message);
-  items.innerHTML = '';
-  data.forEach(item => {
-    const li = document.createElement('li');
-    li.textContent = item.completed ? '✓ ' + item.text : item.text;
-    li.onclick = async () => {
-      const result = await supabase.from('list_items').update({ completed: !item.completed }).eq('id', item.id);
-      if (result.error) setStatus(result.error.message); else refreshItems();
-    };
-    items.appendChild(li);
-  });
+async function createItem() {
+  const text = $('item').value.trim(); if (!text || !state.activeList) return;
+  try {
+    await supabase('/rest/v1/items', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ list_id: state.activeList.id, text }) });
+    $('item').value = ''; await selectList(state.activeList);
+  } catch (error) { setStatus(error.message); }
 }
 
-async function applySession(session) {
-  user = session?.user || null;
-  auth.hidden = !!user;
-  app.hidden = !user;
-  document.getElementById('user').textContent = user?.email || '';
-  if (user) await refreshLists();
+function restoreSession() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('eb_session') || 'null');
+    if (saved?.access_token) { state.session = saved; setSignedIn(saved.user); loadLists().catch(e => setStatus(e.message)); return; }
+  } catch (_) {}
+  setSignedIn(null);
 }
 
-document.getElementById('signIn').onclick = async () => {
-  const result = await supabase.auth.signInWithPassword({ email: email.value.trim(), password: password.value });
-  if (result.error) return setStatus(result.error.message);
-  setStatus('');
-  await applySession(result.data.session);
-};
-
-document.getElementById('signUp').onclick = async () => {
-  const result = await supabase.auth.signUp({ email: email.value.trim(), password: password.value });
-  if (result.error) return setStatus(result.error.message);
-  if (result.data.session) await applySession(result.data.session);
-  else setStatus('Account created. Check your email if confirmation is required.');
-};
-
-document.getElementById('signOut').onclick = async () => {
-  await supabase.auth.signOut({ scope: 'local' });
-  activeList = null;
-  document.getElementById('listView').hidden = true;
-  await applySession(null);
-};
-
-document.getElementById('newList').onclick = async () => {
-  const input = document.getElementById('listName');
-  const name = input.value.trim();
-  if (!name) return;
-  const ordered = document.getElementById('listOrdered').checked;
-  const result = await supabase.from('lists').insert({ name, owner_id: user.id, ordered });
-  if (result.error) return setStatus(result.error.message);
-  input.value = '';
-  document.getElementById('listOrdered').checked = false;
-  await refreshLists();
-};
-
-document.getElementById('newItem').onclick = async () => {
-  const input = document.getElementById('item');
-  const text = input.value.trim();
-  if (!text || !activeList) return;
-  const latest = await supabase.from('list_items').select('position').eq('list_id', activeList.id).order('position', { ascending: false }).limit(1);
-  if (latest.error) return setStatus(latest.error.message);
-  const position = (latest.data?.[0]?.position ?? -1) + 1;
-  const result = await supabase.from('list_items').insert({ list_id: activeList.id, owner_id: user.id, text, position });
-  if (result.error) return setStatus(result.error.message);
-  input.value = '';
-  await refreshItems();
-};
-
-supabase.auth.onAuthStateChange((_event, session) => applySession(session));
-supabase.auth.getSession().then(({ data }) => applySession(data.session));
+$('signIn').onclick = signIn; $('signUp').onclick = signUp; $('signOut').onclick = signOut;
+$('newList').onclick = createList; $('newItem').onclick = createItem;
+$('password').addEventListener('keydown', e => { if (e.key === 'Enter') signIn(); });
+restoreSession();
