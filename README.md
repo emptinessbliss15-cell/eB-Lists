@@ -1,42 +1,17 @@
-# sv
+# eB-Lists — clean-js
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A deliberately minimal browser-native implementation of eB-Lists.
 
-## Creating a project
+## Runtime
 
-If you're seeing this, you've probably already done this step. Congrats!
+- HTML
+- CSS
+- Vanilla JavaScript
+- Browser `fetch()` / Web APIs
+- Supabase HTTP APIs
 
-```sh
-# create a new project
-npx sv create my-app
-```
+## No build system
 
-To recreate this project with the same configuration:
+This branch intentionally has no npm dependencies, framework, bundler, or CDN library. The application is served directly as static files.
 
-```sh
-# recreate this project
-npx sv@0.17.0 create --template minimal --types ts --install npm .
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+Supabase credentials are configured in `app.js` for the deployment environment.
