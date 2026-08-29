@@ -3,10 +3,6 @@
   "name": "eb-lists",
   "compatibility_date": "2026-08-29",
   "assets": {
-    "directory": ".",
-    "exclude": [
-      ".git/**",
-      ".wrangler/**"
-    ]
+    "directory": "."
   }
 }
