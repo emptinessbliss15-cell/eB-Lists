@@ -15,8 +15,15 @@ let activeItem = null;
 let treeGrid = null;
 let itemsGrid = null;
 let cachedLists = [];
+let cachedHolons = new Map();
+let cachedListChildren = new Map();
 
 function setStatus(text) { status.textContent = text || ''; }
+
+function jsonValue(value) {
+  if (typeof value !== 'string') return value;
+  try { return JSON.parse(value); } catch { return value; }
+}
 
 function hideContextMenu() {
   contextMenu.style.display = 'none';
@@ -44,29 +51,22 @@ function showContextMenu(event, actions) {
 document.addEventListener('click', hideContextMenu);
 document.addEventListener('scroll', hideContextMenu, true);
 
-document.addEventListener('contextmenu', event => {
-  if (event.target.closest('#treeGrid tr[data-rowid], #itemsGrid tr[data-rowid]')) return;
-  if (!event.target.closest('#activeList')) return;
-  if (activeList) {
-    showContextMenu(event, [
-      { label: 'Rename list', action: () => renameList(activeList) },
-      { label: 'Delete list', action: () => deleteList(activeList) }
-    ]);
-  }
-});
-
 function rowFromContextEvent(event, grid) {
   const rowEl = event.target.closest('tr[data-rowid]');
   if (!rowEl || !grid) return null;
-  return grid.rowById?.get(Number(rowEl.dataset.rowid)) || null;
+  return grid.rowById?.get(rowEl.dataset.rowid) || grid.rowById?.get(Number(rowEl.dataset.rowid)) || null;
 }
 
 function createTreeGrid() {
   treeGrid?.destroy?.();
+  const roots = [...cachedHolons.values()]
+    .filter(holon => !holon.parentId)
+    .sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
+
   treeGrid = new VanillaGrid('#treeGrid', {
-    data: [{ id: 'lists-root', name: 'My Lists', hasChildren: true }],
+    data: roots,
     columns: [{
-      key: 'name', label: 'List', sortable: true,
+      key: 'name', label: 'Holon', sortable: true,
       render: (value, row) => {
         const wrap = document.createElement('div');
         wrap.className = 'eb-tree-cell';
@@ -100,22 +100,98 @@ function createTreeGrid() {
       enabled: true,
       childrenKey: 'children',
       lazy: true,
-      initiallyExpanded: true,
+      initiallyExpanded: false,
       hasChildrenKey: 'hasChildren'
     },
-    loadChildren: async row => {
-      if (row.id !== 'lists-root') return [];
-      return cachedLists.map(list => ({
-        id: list.id,
-        name: `${list.name}${list.ordered ? ' · ordered' : ''}`,
-        hasChildren: false,
-        list
-      }));
-    },
+    loadChildren: async row => cachedListChildren.get(row.id) || [],
     onRowClick: row => {
-      if (row.id !== 'lists-root') openListById(row.id);
+      if (row?.legacyList) openList(row.legacyList);
+      else if (row?.holon) showHolon(row.holon);
     }
   });
+}
+
+async function refreshHolonTree() {
+  const [holonsResult, fieldsResult, childrenResult, mappingsResult] = await Promise.all([
+    supabase.from('holons').select('id,type_name,created_at'),
+    supabase.from('holon_fields').select('holon_id,name,value,position').in('name', ['name', 'ordered']),
+    supabase.from('holon_children').select('parent_holon_id,child_holon_id,relationship_name,position').order('position'),
+    supabase.from('list_holons').select('list_id,holon_id,parent_holon_id,position')
+  ]);
+
+  for (const result of [holonsResult, fieldsResult, childrenResult, mappingsResult]) {
+    if (result.error) return setStatus(result.error.message);
+  }
+
+  const fieldsByHolon = new Map();
+  (fieldsResult.data || []).forEach(field => {
+    const fields = fieldsByHolon.get(field.holon_id) || {};
+    fields[field.name] = jsonValue(field.value);
+    fieldsByHolon.set(field.holon_id, fields);
+  });
+
+  const mappingByHolon = new Map();
+  (mappingsResult.data || []).forEach(mapping => mappingByHolon.set(mapping.holon_id, mapping));
+
+  const listHolons = new Map();
+  (holonsResult.data || []).forEach(holon => {
+    if (holon.type_name !== 'List') return;
+    const fields = fieldsByHolon.get(holon.id) || {};
+    const mapping = mappingByHolon.get(holon.id);
+    listHolons.set(holon.id, {
+      id: holon.id,
+      name: fields.name ?? '(unnamed)',
+      ordered: !!fields.ordered,
+      type_name: holon.type_name,
+      position: mapping?.position ?? 0,
+      parentId: null,
+      legacyListId: mapping?.list_id || null,
+      legacyList: null,
+      holon,
+      hasChildren: false
+    });
+  });
+
+  const childMap = new Map();
+  (childrenResult.data || []).forEach(edge => {
+    const parent = listHolons.get(edge.parent_holon_id);
+    const child = listHolons.get(edge.child_holon_id);
+    if (!parent || !child) return;
+    child.parentId = parent.id;
+    child.position = edge.position ?? child.position;
+    const children = childMap.get(parent.id) || [];
+    children.push(child);
+    parent.hasChildren = true;
+    childMap.set(parent.id, children);
+  });
+
+  const legacyIds = [...listHolons.values()].map(row => row.legacyListId).filter(Boolean);
+  let legacyLists = [];
+  if (legacyIds.length) {
+    const result = await supabase.from('lists').select('*').in('id', legacyIds);
+    if (result.error) return setStatus(result.error.message);
+    legacyLists = result.data || [];
+  }
+  const legacyById = new Map(legacyLists.map(list => [list.id, list]));
+
+  listHolons.forEach(row => {
+    row.legacyList = row.legacyListId ? legacyById.get(row.legacyListId) || null : null;
+  });
+
+  cachedHolons = listHolons;
+  cachedListChildren = childMap;
+  cachedLists = [...listHolons.values()].filter(row => row.legacyList).map(row => row.legacyList);
+
+  childMap.forEach(children => children.sort((a, b) => a.position - b.position || a.name.localeCompare(b.name)));
+  createTreeGrid();
+}
+
+function showHolon(holon) {
+  activeList = null;
+  document.getElementById('listView').hidden = true;
+  document.getElementById('activeList').textContent = holon.name || 'Holon';
+  document.getElementById('listMode').textContent = holon.type_name || '';
+  setStatus('This holon is not backed by a legacy list yet.');
 }
 
 function createItemsGrid() {
@@ -169,12 +245,7 @@ function createItemsGrid() {
   });
 }
 
-async function refreshLists() {
-  const { data, error } = await supabase.from('lists').select('*').order('created_at');
-  if (error) return setStatus(error.message);
-  cachedLists = data || [];
-  createTreeGrid();
-}
+async function refreshLists() { await refreshHolonTree(); }
 
 async function refreshItems() {
   if (!activeList || !itemsGrid) return;
@@ -188,15 +259,11 @@ function showActiveListName() {
   document.getElementById('listMode').textContent = activeList ? (activeList.ordered ? 'Ordered' : 'Unordered') : '';
 }
 
-async function openListById(id) {
-  const list = cachedLists.find(item => item.id === id);
-  if (list) await openList(list);
-}
-
 async function openList(list) {
   activeList = list;
   showActiveListName();
   document.getElementById('listView').hidden = false;
+  setStatus('');
   await refreshItems();
 }
 
@@ -206,6 +273,8 @@ async function renameList(list) {
   if (!name || name === list.name) return;
   const result = await supabase.from('lists').update({ name }).eq('id', list.id).eq('owner_id', user.id);
   if (result.error) return setStatus(result.error.message);
+  const mapping = [...cachedHolons.values()].find(row => row.legacyListId === list.id);
+  if (mapping) await supabase.from('holon_fields').update({ value: JSON.stringify(name) }).eq('holon_id', mapping.id).eq('name', 'name');
   if (activeList?.id === list.id) activeList.name = name;
   await refreshLists();
   showActiveListName();
@@ -243,19 +312,15 @@ function setupContextMenus() {
   treeHost.addEventListener('contextmenu', event => {
     const row = rowFromContextEvent(event, treeGrid);
     if (!row) return;
-    const list = row.list || cachedLists.find(item => item.id === row.id);
-    if (row.id === 'lists-root') {
-      showContextMenu(event, [
-        { label: 'New list', action: () => document.getElementById('listName').focus() },
-        { label: 'Refresh lists', action: refreshLists }
-      ]);
-    } else if (list) {
-      showContextMenu(event, [
-        { label: 'Open list', action: () => openList(list) },
-        { label: 'Rename list', action: () => renameList(list) },
-        { label: 'Delete list', action: () => deleteList(list) }
-      ]);
+    const list = row.legacyList;
+    const actions = [];
+    if (list) actions.push({ label: 'Open list', action: () => openList(list) });
+    actions.push({ label: 'Refresh tree', action: refreshLists });
+    if (list) {
+      actions.push({ label: 'Rename list', action: () => renameList(list) });
+      actions.push({ label: 'Delete list', action: () => deleteList(list) });
     }
+    showContextMenu(event, actions);
   }, true);
 
   itemsHost.addEventListener('contextmenu', event => {
@@ -276,7 +341,7 @@ function setupContextMenus() {
   itemsHost.addEventListener('change', async event => {
     const checkbox = event.target.closest('.item-complete-checkbox');
     if (!checkbox) return;
-    const row = itemsGrid?.rowById?.get(Number(checkbox.closest('tr')?.dataset.rowid));
+    const row = itemsGrid?.rowById?.get(checkbox.closest('tr')?.dataset.rowid) || itemsGrid?.rowById?.get(Number(checkbox.closest('tr')?.dataset.rowid));
     if (row) await setItemCompleted(row, checkbox.checked);
   }, true);
 }
@@ -291,6 +356,7 @@ async function applySession(session) {
     await refreshLists();
   } else {
     activeList = null; activeItem = null; cachedLists = [];
+    cachedHolons.clear(); cachedListChildren.clear();
     treeGrid?.destroy?.(); itemsGrid?.setData?.([]);
   }
 }
@@ -315,8 +381,18 @@ document.getElementById('newList').onclick = async () => {
   const input = document.getElementById('listName'); const name = input.value.trim();
   if (!name || !user) return;
   const ordered = document.getElementById('listOrdered').checked;
-  const result = await supabase.from('lists').insert({ name, owner_id: user.id, ordered });
+  const result = await supabase.from('lists').insert({ name, owner_id: user.id, ordered }).select().single();
   if (result.error) return setStatus(result.error.message);
+  const list = result.data;
+  const holonResult = await supabase.from('holons').insert({ owner_id: user.id, type_name: 'List' }).select().single();
+  if (!holonResult.error) {
+    const holon = holonResult.data;
+    await supabase.from('holon_fields').insert([
+      { holon_id: holon.id, name: 'name', field_type: 'text', value: JSON.stringify(name), position: 0 },
+      { holon_id: holon.id, name: 'ordered', field_type: 'boolean', value: JSON.stringify(ordered), position: 1 }
+    ]);
+    await supabase.from('list_holons').insert({ list_id: list.id, holon_id: holon.id, owner_id: user.id, position: 0 });
+  }
   input.value = ''; document.getElementById('listOrdered').checked = false; await refreshLists();
 };
 
