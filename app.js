@@ -1,133 +1,30 @@
-// eB Lists — clean-js baseline
-// Browser-native JavaScript only. Supabase is accessed through the REST/Auth HTTP APIs.
-
-const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';
-
-const $ = (id) => document.getElementById(id);
-const state = { session: null, lists: [], activeList: null, items: [] };
-
-async function supabase(path, options = {}) {
-  const headers = {
-    apikey: SUPABASE_ANON_KEY,
-    'Content-Type': 'application/json',
-    ...(options.headers || {})
-  };
-  if (state.session?.access_token) headers.Authorization = `Bearer ${state.session.access_token}`;
-  const response = await fetch(`${SUPABASE_URL}${path}`, { ...options, headers });
-  const text = await response.text();
-  let data = null;
-  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-  if (!response.ok) throw new Error(data?.message || data?.error_description || text || response.statusText);
-  return data;
-}
-
-function setStatus(message = '') { $('status').textContent = message; }
-function setSignedIn(user) {
-  $('auth').hidden = !!user;
-  $('app').hidden = !user;
-  $('headerAuth').hidden = !user;
-  $('user').textContent = user?.email || '';
-}
-
-async function signIn() {
-  try {
-    setStatus('Signing in…');
-    const data = await supabase('/auth/v1/token?grant_type=password', {
-      method: 'POST', body: JSON.stringify({ email: $('email').value, password: $('password').value })
-    });
-    state.session = data;
-    localStorage.setItem('eb_session', JSON.stringify(data));
-    setSignedIn(data.user);
-    await loadLists();
-    setStatus('');
-  } catch (error) { setStatus(error.message); }
-}
-
-async function signUp() {
-  try {
-    setStatus('Creating account…');
-    await supabase('/auth/v1/signup', { method: 'POST', body: JSON.stringify({ email: $('email').value, password: $('password').value }) });
-    setStatus('Account created. Check your email if confirmation is required.');
-  } catch (error) { setStatus(error.message); }
-}
-
-async function signOut() {
-  try { if (state.session) await supabase('/auth/v1/logout', { method: 'POST' }); } catch (_) {}
-  state.session = null; state.lists = []; state.activeList = null; state.items = [];
-  localStorage.removeItem('eb_session');
-  setSignedIn(null); renderLists(); renderItems(); setStatus('');
-}
-
-async function loadLists() {
-  state.lists = await supabase('/rest/v1/lists?select=*&order=position.asc,created_at.asc');
-  renderLists();
-}
-
-function renderLists() {
-  const ul = $('lists'); ul.replaceChildren(); $('tree').replaceChildren();
-  const treeList = document.createElement('ul');
-  for (const list of state.lists) {
-    const li = document.createElement('li');
-    const button = document.createElement('button'); button.type = 'button'; button.textContent = list.name;
-    button.onclick = () => selectList(list);
-    li.append(button); ul.append(li);
-    const treeLi = li.cloneNode(true); treeLi.querySelector('button').onclick = () => selectList(list); treeList.append(treeLi);
-  }
-  ul.append(); $('tree').append(treeList);
-}
-
-async function selectList(list) {
-  state.activeList = list; $('listView').hidden = false; $('activeList').textContent = list.name;
-  $('listMode').textContent = list.ordered ? 'Ordered' : 'Unordered';
-  try {
-    state.items = await supabase(`/rest/v1/items?select=*&list_id=eq.${encodeURIComponent(list.id)}&order=position.asc,created_at.asc`);
-    renderItems();
-  } catch (error) { setStatus(error.message); }
-}
-
-function renderItems() {
-  const ul = $('items'); ul.replaceChildren();
-  for (const item of state.items) {
-    const li = document.createElement('li'); li.className = 'eb-item';
-    const button = document.createElement('button'); button.type = 'button'; button.textContent = item.completed ? '✓' : '○';
-    const text = document.createElement('span'); text.textContent = item.text; if (item.completed) text.className = 'done';
-    button.onclick = () => toggleItem(item); li.append(button, text); ul.append(li);
-  }
-}
-
-async function toggleItem(item) {
-  try {
-    await supabase(`/rest/v1/items?id=eq.${encodeURIComponent(item.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ completed: !item.completed }) });
-    item.completed = !item.completed; renderItems();
-  } catch (error) { setStatus(error.message); }
-}
-
-async function createList() {
-  const name = $('listName').value.trim(); if (!name) return;
-  try {
-    await supabase('/rest/v1/lists', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ name, ordered: $('listOrdered').checked }) });
-    $('listName').value = ''; await loadLists();
-  } catch (error) { setStatus(error.message); }
-}
-
-async function createItem() {
-  const text = $('item').value.trim(); if (!text || !state.activeList) return;
-  try {
-    await supabase('/rest/v1/items', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ list_id: state.activeList.id, text }) });
-    $('item').value = ''; await selectList(state.activeList);
-  } catch (error) { setStatus(error.message); }
-}
-
-function restoreSession() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('eb_session') || 'null');
-    if (saved?.access_token) { state.session = saved; setSignedIn(saved.user); loadLists().catch(e => setStatus(e.message)); return; }
-  } catch (_) {}
-  setSignedIn(null);
-}
-
-$('signIn').onclick = signIn; $('signUp').onclick = signUp; $('signOut').onclick = signOut;
-$('newList').onclick = createList; $('newItem').onclick = createItem;
-$('password').addEventListener('keydown', e => { if (e.key === 'Enter') signIn(); });
-restoreSession();
+// eB Lists — clean-js
+// Browser-native JavaScript only. No framework, bundler, npm package, or CDN library.
+const SUPABASE_URL='https://zaabghrczrbqkxrhkinj.supabase.co';
+const SUPABASE_KEY='sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF';
+const $=id=>document.getElementById(id);
+const state={session:null,user:null,lists:[],active:null,items:[]};
+async function api(path,opt={}){const h={apikey:SUPABASE_KEY,'Content-Type':'application/json',...(opt.headers||{})};if(state.session?.access_token)h.Authorization=`Bearer ${state.session.access_token}`;const r=await fetch(SUPABASE_URL+path,{...opt,headers:h});const t=await r.text();let d=null;try{d=t?JSON.parse(t):null}catch{d=t}if(!r.ok)throw Error(d?.message||d?.error_description||t||r.statusText);return d}
+function status(s=''){ $('status').textContent=s }
+function signedIn(user){state.user=user;$('auth').hidden=!!user;$('app').hidden=!user;$('headerAuth').hidden=!user;$('user').textContent=user?.email||''}
+async function signIn(){try{status('Signing in…');const d=await api('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});state.session=d;localStorage.setItem('eb_session',JSON.stringify(d));signedIn(d.user);await loadLists();status('')}catch(e){status(e.message)}}
+async function signUp(){try{status('Creating account…');const d=await api('/auth/v1/signup',{method:'POST',body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});if(d?.session){state.session=d.session;signedIn(d.user);await loadLists();status('')}else status('Account created. Check your email if confirmation is required.')}catch(e){status(e.message)}}
+async function signOut(){try{if(state.session)await api('/auth/v1/logout',{method:'POST'})}catch{}state.session=null;state.user=null;state.lists=[];state.active=null;state.items=[];localStorage.removeItem('eb_session');signedIn(null);renderTree();renderItems();}
+async function loadLists(){state.lists=await api('/rest/v1/lists?select=*&order=position.asc,created_at.asc');renderTree();renderListChoices()}
+function renderListChoices(){const ul=$('lists');ul.replaceChildren();for(const l of state.lists){const li=document.createElement('li');const b=document.createElement('button');b.type='button';b.textContent=`${l.name} ${l.ordered?'☷':'☰'}`;b.onclick=()=>openList(l);li.append(b);ul.append(li)}}
+function renderTree(){const tree=$('tree');tree.replaceChildren();if(!state.user)return;const root=document.createElement('button');root.textContent='Lists';root.disabled=true;tree.append(root);const children=new Map();for(const l of state.lists){const p=l.parent_list_id||'root';if(!children.has(p))children.set(p,[]);children.get(p).push(l)}function walk(parent,depth){for(const l of (children.get(parent)||[]).sort((a,b)=>(a.position??0)-(b.position??0))){const row=document.createElement('div');row.className='list-row';const b=document.createElement('button');b.textContent=`${'  '.repeat(depth)}${l.name} ${l.ordered?'☷':'☰'}`;b.title='Open list';b.setAttribute('aria-current',String(state.active?.id===l.id));b.onclick=()=>openList(l);row.append(b);const actions=document.createElement('span');actions.className='list-actions';for(const [label,title,fn] of [['+','Add sub-list',()=>addSubList(l)],['⋮','List actions',e=>menu(e.clientX,e.clientY,l)]]){const x=document.createElement('button');x.textContent=label;x.title=title;x.onclick=e=>{e.stopPropagation();fn(e)};actions.append(x)}row.append(actions);tree.append(row);walk(l.id,depth+1)}}walk('root',0)}
+async function openList(l){state.active=l;$('listView').hidden=false;$('activeList').textContent=l.name;$('listMode').textContent=l.ordered?'Ordered':'Unordered';await loadItems();renderTree()}
+async function loadItems(){if(!state.active)return;state.items=await api(`/rest/v1/list_items?select=*&list_id=eq.${encodeURIComponent(state.active.id)}&order=position.asc,created_at.asc`);renderItems()}
+function renderItems(){const ul=$('items');ul.className='items';ul.replaceChildren();const byParent=new Map();for(const i of state.items){const p=i.parent_id||'root';if(!byParent.has(p))byParent.set(p,[]);byParent.get(p).push(i)}function walk(parent,depth){for(const i of byParent.get(parent)||[]){const li=document.createElement('li');li.className='item-row';const main=document.createElement('div');main.className='item-main';main.style.paddingLeft=`${depth*20}px`;const check=document.createElement('button');check.className='item-check';check.textContent=i.completed?'✓':'○';check.title=i.completed?'Mark incomplete':'Mark complete';check.onclick=()=>toggleItem(i);const text=document.createElement('span');text.textContent=i.text;if(i.completed)text.className='done';main.append(check,text);const actions=document.createElement('div');actions.className='item-actions';for(const [label,title,fn] of [['+','Add child',()=>addChild(i)],['✎','Edit',()=>editItem(i,text)],['×','Delete',()=>deleteItem(i)]]){const b=document.createElement('button');b.textContent=label;b.title=title;b.onclick=e=>{e.stopPropagation();fn()};actions.append(b)}li.append(main,actions);li.oncontextmenu=e=>{e.preventDefault();menu(e.clientX,e.clientY,i)};ul.append(li);walk(i.id,depth+1)}}walk('root',0)}
+async function toggleItem(i){try{await api(`/rest/v1/list_items?id=eq.${encodeURIComponent(i.id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({completed:!i.completed})});await loadItems()}catch(e){status(e.message)}}
+async function createList(){const name=$('listName').value.trim();if(!name)return;try{const position=state.lists.filter(l=>!l.parent_list_id).length;await api('/rest/v1/lists',{method:'POST',body:JSON.stringify({name,ordered:$('listOrdered').checked,owner_id:state.user.id,parent_list_id:null,position})});$('listName').value='';$('listOrdered').checked=false;await loadLists()}catch(e){status(e.message)}}
+async function addSubList(parent){const name=prompt(`Name for a sub-list of “${parent.name}”:`);if(!name?.trim())return;try{const n=state.lists.filter(l=>(l.parent_list_id||null)===parent.id).length;await api('/rest/v1/lists',{method:'POST',body:JSON.stringify({name:name.trim(),ordered:false,owner_id:state.user.id,parent_list_id:parent.id,position:n})});await loadLists()}catch(e){status(e.message)}}
+async function createItem(){if(!state.active)return;const text=$('item').value.trim();if(!text)return;try{const n=state.items.filter(i=>!i.parent_id).length;await api('/rest/v1/list_items',{method:'POST',body:JSON.stringify({list_id:state.active.id,owner_id:state.user.id,text,position:n,parent_id:null})});$('item').value='';await loadItems()}catch(e){status(e.message)}}
+async function addChild(parent){if(!state.active)return;const text=prompt(`Add child item to “${parent.text}”:`);if(!text?.trim())return;try{const n=state.items.filter(i=>i.parent_id===parent.id).length;await api('/rest/v1/list_items',{method:'POST',body:JSON.stringify({list_id:state.active.id,owner_id:state.user.id,text:text.trim(),position:n,parent_id:parent.id})});await loadItems()}catch(e){status(e.message)}}
+async function editItem(i,el){const text=prompt('Edit item:',i.text);if(text===null||!text.trim())return;try{await api(`/rest/v1/list_items?id=eq.${encodeURIComponent(i.id)}`,{method:'PATCH',body:JSON.stringify({text:text.trim()})});await loadItems()}catch(e){status(e.message)}}
+async function deleteItem(i){if(!confirm(`Delete “${i.text}”?`))return;try{await api(`/rest/v1/list_items?id=eq.${encodeURIComponent(i.id)}`,{method:'DELETE'});await loadItems()}catch(e){status(e.message)}}
+async function deleteList(l){if(!confirm(`Delete “${l.name}”?`))return;try{await api(`/rest/v1/lists?id=eq.${encodeURIComponent(l.id)}`,{method:'DELETE'});if(state.active?.id===l.id){state.active=null;$('listView').hidden=true}await loadLists()}catch(e){status(e.message)}}
+function menu(x,y,obj){closeMenu();const m=document.createElement('div');m.className='context-menu';m.id='contextMenu';const isItem=Object.hasOwn(obj,'text');const choices=isItem?[['Add child',()=>addChild(obj)],['Edit',()=>editItem(obj)],['Delete',()=>deleteItem(obj)]]:[['Open',()=>openList(obj)],['Add sub-list',()=>addSubList(obj)],['Delete',()=>deleteList(obj)]];for(const [label,fn] of choices){const b=document.createElement('button');b.textContent=label;b.onclick=()=>{closeMenu();fn()};m.append(b)}document.body.append(m);m.style.left=Math.min(x,innerWidth-200)+'px';m.style.top=Math.min(y,innerHeight-180)+'px'}
+function closeMenu(){document.getElementById('contextMenu')?.remove()}
+function restore(){try{const s=JSON.parse(localStorage.getItem('eb_session')||'null');if(s?.access_token){state.session=s;signedIn(s.user);loadLists().catch(e=>status(e.message));return}}catch{}signedIn(null)}
+document.addEventListener('click',e=>{if(!e.target.closest('.context-menu'))closeMenu()});$('signIn').onclick=signIn;$('signUp').onclick=signUp;$('signOut').onclick=signOut;$('newList').onclick=createList;$('newItem').onclick=createItem;$('password').addEventListener('keydown',e=>{if(e.key==='Enter')signIn()});restore();
