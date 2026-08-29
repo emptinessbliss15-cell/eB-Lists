@@ -4,72 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>eB Lists</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-body{margin:0;font-family:system-ui}
-input,button,select{font:inherit;padding:6px;margin:3px}
-button{cursor:pointer}
-.card{border:1px solid #8886;border-radius:8px;padding:12px;margin:12px}
-.muted{opacity:.7}
-.eb-row{display:flex;align-items:center;gap:8px}
-.eb-main ul{padding-left:20px}
-.ordered-items{list-style-type:decimal}
-.cf-build-status{font-size:12px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
-.cf-build-dot{font-size:11px}
-</style>
+<link rel="stylesheet" href="./style.css">
 </head>
 <body>
 <div id="shell" class="eb-shell">
-  <header id="header" class="eb-header">
-    <div class="eb-header-inner">
-      <div class="cf-build-status" title="Cloudflare deployment status">
-        <span class="cf-build-dot">●</span><span>CF: deployed</span>
-      </div>
-      <div class="eb-row">
-        <strong>eB Lists</strong>
-        <span class="eb-app-name">Lists</span>
-      </div>
-      <div class="eb-row" id="headerAuth" hidden>
-        <strong id="user"></strong>
-        <button id="signOut" type="button">Sign out</button>
-      </div>
-    </div>
-  </header>
-  <div class="eb-navigation">
-    <nav id="tree" class="eb-tree" aria-label="Context"></nav>
-    <main class="eb-main">
-      <div id="subheader" class="eb-subheader" style="margin:-8px -8px 8px"></div>
-      <section id="auth" class="card">
-        <h2>Sign in</h2>
-        <input id="email" type="email" placeholder="Email" autocomplete="email">
-        <input id="password" type="password" placeholder="Password" autocomplete="current-password">
-        <div><button id="signIn">Sign in</button><button id="signUp">Create account</button></div>
-      </section>
-      <section id="app" class="card" hidden>
-        <h2>Lists</h2>
-        <div><input id="listName" placeholder="New list name"><label><input id="listOrdered" type="checkbox"> Ordered</label><button id="newList">Create list</button></div>
-        <ul id="lists"></ul>
-        <div id="listView" hidden>
-          <h2 id="activeList"></h2>
-          <div class="muted" id="listMode"></div>
-          <input id="item" placeholder="Add an item"><button id="newItem">Add</button>
-          <ul id="items"></ul>
-          <p class="muted">Click an item to toggle complete.</p>
-        </div>
-      </section>
-      <p id="status" class="muted"></p>
-    </main>
-  </div>
-</div>
+<header class="eb-header"><div class="eb-header-inner">
+  <div class="eb-row"><strong>eB Lists</strong><span>Lists</span></div>
+  <div class="eb-row" id="headerAuth" hidden><strong id="user"></strong><button id="signOut" type="button">Sign out</button></div>
+</div></header>
+<div class="eb-navigation">
+<nav id="tree" class="eb-tree" aria-label="Context"></nav>
+<main class="eb-main">
+<section id="auth" class="card"><h2>Sign in</h2><input id="email" type="email" placeholder="Email" autocomplete="email"><input id="password" type="password" placeholder="Password" autocomplete="current-password"><div><button id="signIn">Sign in</button><button id="signUp">Create account</button></div></section>
+<section id="app" class="card" hidden><h2>Lists</h2><div><input id="listName" placeholder="New list name"><label><input id="listOrdered" type="checkbox"> Ordered</label><button id="newList">Create list</button></div><ul id="lists"></ul><div id="listView" hidden><h2 id="activeList"></h2><div class="muted" id="listMode"></div><input id="item" placeholder="Add an item"><button id="newItem">Add</button><ul id="items"></ul><p class="muted">Click an item to toggle complete.</p></div></section>
+<p id="status" class="muted"></p>
+</main></div></div>
 <script src="./app.js"></script>
-<script>
-  const app = document.getElementById('app');
-  const headerAuth = document.getElementById('headerAuth');
-  const syncHeaderAuth = () => {
-    headerAuth.hidden = app.hidden;
-  };
-  new MutationObserver(syncHeaderAuth).observe(app, { attributes: true, attributeFilter: ['hidden'] });
-  syncHeaderAuth();
-</script>
-</body>
-</html>
+</body></html>
