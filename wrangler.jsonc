@@ -1,6 +1,6 @@
 {
   "$schema": "https://developers.cloudflare.com/workers/wrangler/config-schema.json",
-  "name": "clean-js-eb-lists",
+  "name": "eb-lists",
   "compatibility_date": "2026-08-29",
   "assets": {
     "directory": "."
