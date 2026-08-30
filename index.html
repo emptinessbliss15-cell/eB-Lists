@@ -20,12 +20,12 @@
     <div class="eb-row">
       <strong>eB Lists</strong>
     </div>
-    <section id="auth" class="signoutcard">
+    <section id="authout" class="signoutcard">
       <div class="eb-row" id="headerAuth" hidden><strong id="user"></strong>
         <button id="signOut" type="button">Sign out</button>
     </section>
     </div>
-    <section id="auth" class="signincard">
+    <section id="authin" class="signincard">
     <!-- <h2>Sign in</h2></!--->
       <form id="authForm">
         <input id="email" type="email" placeholder="Email" autocomplete="email">
@@ -39,17 +39,15 @@
 </div>
 </header>
 <div class="eb-navigation">
-<nav id="tree" class="eb-tree" aria-label="Context"></nav>
+  <nav id="tree" class="eb-tree" aria-label="Context"></nav>
 <main class="eb-main">
     <section id="app" class="card" hidden>
-      <!--- <h2>Lists</h2></!-->
-    <div>
-      <input id="listName" placeholder="New list name"><label>
-      <input id="listOrdered" type="checkbox"> Ordered</label>
-      <button id="newList">Create list</button>
-    </div>
+        <div>
+            <input id="listName" placeholder="New list name"><label>
+            <input id="listOrdered" type="checkbox"> Ordered</label>
+            <button id="newList">Create list</button>
+        </div>
     <div id="lists">
-
     </div>
     <div id="listView" hidden>
       <h2 id="activeList"></h2>

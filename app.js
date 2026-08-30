@@ -359,4 +359,8 @@ document.addEventListener('click', e => { if (!e.target.closest('.context-menu')
  $('signUp').onclick = signUp;
  $('signOut').onclick = signOut; $('newList').onclick = createList;
  $('newItem').onclick = createItem; $('password').addEventListener('keydown', e => { if (e.key === 'Enter') signIn() });
+ document.getElementById('refresh')?.addEventListener('click', () =>
+{
+    window.location.reload();
+});
  restore();
