@@ -12,17 +12,57 @@
 </head>
 <body>
 <div id="shell" class="eb-shell">
-<header class="eb-header"><div class="eb-header-inner">
-  <div class="eb-row"><strong>eB Lists</strong><span>Lists</span></div>
-  <div class="eb-row" id="headerAuth" hidden><strong id="user"></strong><button id="signOut" type="button">Sign out</button></div>
-</div></header>
+<header class="eb-header">
+  <div class="eb-header-inner">
+    <div class="eb-header-refresh">
+      <button id="refresh" type="button">↻</button>
+    </div>
+    <div class="eb-row">
+      <strong>eB Lists</strong>
+    </div>
+    <section id="auth" class="signoutcard">
+      <div class="eb-row" id="headerAuth" hidden><strong id="user"></strong>
+        <button id="signOut" type="button">Sign out</button>
+    </section>
+    </div>
+    <section id="auth" class="signincard">
+    <!-- <h2>Sign in</h2></!--->
+      <form id="authForm">
+        <input id="email" type="email" placeholder="Email" autocomplete="email">
+        <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+        <div>
+          <button id="signIn">Sign in</button>
+          <button id="signUp">Create account</button>
+        </div>
+      </form>
+    </section>
+</div>
+</header>
 <div class="eb-navigation">
 <nav id="tree" class="eb-tree" aria-label="Context"></nav>
 <main class="eb-main">
-<section id="auth" class="card"><h2>Sign in</h2><input id="email" type="email" placeholder="Email" autocomplete="email"><input id="password" type="password" placeholder="Password" autocomplete="current-password"><div><button id="signIn">Sign in</button><button id="signUp">Create account</button></div></section>
-<section id="app" class="card" hidden><h2>Lists</h2><div><input id="listName" placeholder="New list name"><label><input id="listOrdered" type="checkbox"> Ordered</label><button id="newList">Create list</button></div><div id="lists"></div><div id="listView" hidden><h2 id="activeList"></h2><div class="muted" id="listMode"></div><input id="item" placeholder="Add an item"><button id="newItem">Add</button><ul id="items"></ul><p class="muted">Click an item to toggle complete.</p></div></section>
-<p id="status" class="muted"></p>
-</main></div></div>
+    <section id="app" class="card" hidden>
+      <!--- <h2>Lists</h2></!-->
+    <div>
+      <input id="listName" placeholder="New list name"><label>
+      <input id="listOrdered" type="checkbox"> Ordered</label>
+      <button id="newList">Create list</button>
+    </div>
+    <div id="lists">
+
+    </div>
+    <div id="listView" hidden>
+      <h2 id="activeList"></h2>
+      <div class="muted" id="listMode"></div>
+      <input id="item" placeholder="Add an item">
+      <button id="newItem">Add</button><ul id="items"></ul>
+    </div>
+  </section>
+  <p id="status" class="muted"></p>
+</main>
+</div>
+</div>
+
 <script src="./vendor/vanillagrid.js"></script>
 <script src="./app.js"></script>
 </body></html>
