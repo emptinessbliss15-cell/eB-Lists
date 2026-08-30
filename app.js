@@ -22,9 +22,9 @@ function status(s = '')
 function signedIn(user) 
 {
     state.user = user;
-    $('auth').hidden = !!user;
+    $('authout').hidden = !!user;
+    $('authin').hidden = !user;
     $('app').hidden = !user;
-    $('headerAuth').hidden = !user;
     $('user').textContent = user?.email || ''
 }
 
@@ -127,8 +127,10 @@ function renderTree()
 {
     destroyTree();
     if (!state.user) return;
+    status("rendering Tree...")
     const rows = makeHierarchy(state.lists);
     state.treeGrid = new VanillaGrid('#tree', { data: rows, columns: [{ key: 'name', label: 'Lists', sortable: true, format: (v, r) => `${v} ${r.ordered ? '☷' : '☰'}` }], tree: { enabled: true, childrenKey: 'children', indent: 18, initiallyExpanded: true }, sortable: false, filterable: false, pagination: false, selectable: true, contextMenu: true, rowDragDrop: false, onSelectionChange: selected => { if (selected?.[0]) openList(selected[0]) } }) 
+    status("Tree rendered.")    
 }
 
 function renderListChoices()
