@@ -1,6 +1,6 @@
 // eB Lists — clean-js + locally vendored VanillaGrid
-const SUPABASE_URL = globalThis.SUPABASE_URL || 'https://zaabghrczrbqkxrhkinj.supabase.co';
-const SUPABASE_KEY = globalThis.SUPABASE_KEY || 'sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF';
+const SUPABASE_URL = 'https://zaabghrczrbqkxrhkinj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF';
 const $ = id => document.getElementById(id);
 const state = { session: null, user: null, lists: [], active: null, items: [], treeGrid: null };
 
