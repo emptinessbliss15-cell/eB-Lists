@@ -6,7 +6,10 @@ const state = { session: null, user: null, lists: [], active: null, items: [], t
 
 async function api(path, opt = {}) 
 {
+    console.log("Starting api...");
+    console.log(path, opt);
     const h = { apikey: SUPABASE_KEY, 'Content-Type': 'application/json', ...(opt.headers || {}) };
+    console.log(`h = ${h}`);
     if (state.session?.access_token) h.Authorization = `Bearer ${state.session.access_token}`;
     const r = await fetch(SUPABASE_URL + path, { ...opt, headers: h });
     const t = await r.text(); let d = null;
@@ -37,7 +40,8 @@ async function signIn()
     {
         status('Signing in…');
         const d = await api('/auth/v1/token?grant_type=password', { method: 'POST', body: JSON.stringify({ email: $('email').value.trim(), password: $('password').value }) });
-        console.log(d);
+        console.log("signin response d =", d);
+        console.log("signin response JSON =", JSON.stringify(d, null, 2));
         state.session = d;
         localStorage.setItem('eb_session', JSON.stringify(d));
         signedIn(d.user);
