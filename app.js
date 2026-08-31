@@ -6,18 +6,19 @@ const auth = document.getElementById('auth');
 const email = document.getElementById('email');
 const password = document.getElementById('password');
 const tree = document.getElementById('tree');
-const lists = document.getElementById('lists');
-const items = document.getElementById('items');
-const listView = document.getElementById('listView');
+const gridElement = document.getElementById('grid');
+const detailGridElement = document.getElementById('detailGrid');
 const activeList = document.getElementById('activeList');
 const listMode = document.getElementById('listMode');
 const subheader = document.getElementById('subheader');
+const userElement = document.getElementById('user');
 
 let user = null;
 let selectedHolon = null;
 let holons = [];
 let relationships = [];
-let relationshipTypes = [];
+let holonGrid = null;
+let relationshipGrid = null;
 
 function setStatus(text) {
   status.textContent = text || '';
@@ -25,33 +26,6 @@ function setStatus(text) {
 
 function setSubheader(text) {
   subheader.textContent = text || '';
-}
-
-function byId(rows) {
-  return new Map(rows.map(row => [row.id, row]));
-}
-
-async function loadModel() {
-  const [holonResult, relationshipResult, typeResult] = await Promise.all([
-    supabase.from('holons_view').select('*').order('created_at'),
-    supabase.from('relationships_view').select('*').order('position').order('created_at'),
-    supabase.from('relationship_types').select('*').order('name')
-  ]);
-
-  if (holonResult.error) return setStatus(holonResult.error.message);
-  if (relationshipResult.error) return setStatus(relationshipResult.error.message);
-  if (typeResult.error) return setStatus(typeResult.error.message);
-
-  holons = holonResult.data || [];
-  relationships = relationshipResult.data || [];
-  relationshipTypes = typeResult.data || [];
-
-  renderTree();
-  renderHolonList();
-}
-
-function relationshipName(id) {
-  return relationshipTypes.find(type => type.id === id)?.name || '';
 }
 
 function childrenOf(parentId) {
@@ -63,131 +37,133 @@ function childrenOf(parentId) {
 function renderTree() {
   tree.innerHTML = '';
   const roots = holons.filter(holon => !relationships.some(rel => rel.source_holon_id === holon.id));
-  const rootRows = roots.length ? roots : holons.slice(0, 1);
-
-  rootRows.forEach(root => {
-    tree.appendChild(renderTreeNode(root, new Set()));
-  });
+  const rows = roots.length ? roots : holons;
+  rows.forEach(root => tree.appendChild(renderTreeNode(root, new Set())));
 }
 
 function renderTreeNode(holon, path) {
-  const li = document.createElement('div');
-  li.className = 'tree-node';
-
+  const node = document.createElement('div');
+  node.className = 'tree-node';
   const button = document.createElement('button');
   button.type = 'button';
   button.className = `tree-link${selectedHolon?.id === holon.id ? ' selected' : ''}`;
-  button.textContent = holon.name;
-  button.title = `${holon.name} · ${holon.holon_type || 'holon'}`;
+  button.textContent = holon.name || '(unnamed)';
+  button.title = `${holon.name || '(unnamed)'} · ${holon.holon_type || 'holon'}`;
   button.onclick = () => openHolon(holon);
-  li.appendChild(button);
+  node.appendChild(button);
 
-  if (path.has(holon.id)) return li;
+  if (path.has(holon.id)) return node;
   const nextPath = new Set(path);
   nextPath.add(holon.id);
-
   const children = childrenOf(holon.id);
-  if (children.length) {
-    const group = document.createElement('div');
-    group.className = 'tree-children';
-    children.forEach(rel => {
-      const child = holons.find(item => item.id === rel.source_holon_id);
-      if (!child) return;
-      const childNode = renderTreeNode(child, nextPath);
-      const relLabel = relationshipName(rel.relationship_type_id) || rel.relationship_type || '';
-      if (relLabel) childNode.dataset.relationship = relLabel;
-      group.appendChild(childNode);
-    });
-    li.appendChild(group);
-  }
+  if (!children.length) return node;
 
-  return li;
+  const group = document.createElement('div');
+  group.className = 'tree-children';
+  children.forEach(rel => {
+    const child = holons.find(item => item.id === rel.source_holon_id);
+    if (child) group.appendChild(renderTreeNode(child, nextPath));
+  });
+  node.appendChild(group);
+  return node;
 }
 
-function renderHolonList() {
-  lists.innerHTML = '';
-  holons.forEach(holon => {
-    const li = document.createElement('li');
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'list-link';
-    button.textContent = `${holon.name} · ${holon.holon_type || 'holon'}`;
-    button.onclick = () => openHolon(holon);
-    li.appendChild(button);
-    lists.appendChild(li);
+function createGrids() {
+  holonGrid?.destroy();
+  relationshipGrid?.destroy();
+
+  holonGrid = new VanillaGrid(gridElement, {
+    data: holons,
+    columns: [
+      { key: 'name', label: 'Name', sortable: true },
+      { key: 'holon_type', label: 'Type', sortable: true },
+      { key: 'id', label: 'ID', sortable: true }
+    ],
+    filterable: true,
+    sortable: true,
+    pagination: true,
+    pageSize: 25,
+    selectable: true,
+    contextMenu: true,
+    onSelectionChange: rows => {
+      if (rows.length) openHolon(rows[rows.length - 1]);
+    }
+  });
+
+  relationshipGrid = new VanillaGrid(detailGridElement, {
+    data: relationships,
+    columns: [
+      { key: 'source_holon', label: 'Source', sortable: true },
+      { key: 'relationship_type', label: 'Relationship', sortable: true },
+      { key: 'target_holon', label: 'Target', sortable: true },
+      { key: 'position', label: 'Position', type: 'number', sortable: true }
+    ],
+    filterable: true,
+    sortable: true,
+    pagination: true,
+    pageSize: 25,
+    contextMenu: true
   });
 }
 
-async function openHolon(holon) {
+async function loadModel() {
+  setStatus('Loading Holon model…');
+  const [holonResult, relationshipResult] = await Promise.all([
+    supabase.from('holons_view').select('*').order('created_at'),
+    supabase.from('relationships_view').select('*').order('position').order('created_at')
+  ]);
+
+  if (holonResult.error) return setStatus(`Holons: ${holonResult.error.message}`);
+  if (relationshipResult.error) return setStatus(`Relationships: ${relationshipResult.error.message}`);
+
+  holons = holonResult.data || [];
+  relationships = relationshipResult.data || [];
+  renderTree();
+  createGrids();
+  setStatus(`${holons.length} holons · ${relationships.length} relationships`);
+}
+
+function openHolon(holon) {
   selectedHolon = holon;
   renderTree();
-  setSubheader(`${holon.holon_type || 'Holon'} · ${holon.name}`);
-  activeList.textContent = holon.name;
+  activeList.textContent = holon.name || '(unnamed)';
   listMode.textContent = holon.holon_type || 'Holon';
-  listView.hidden = false;
+  setSubheader(`${holon.holon_type || 'Holon'} · ${holon.name || '(unnamed)'}`);
 
-  const childRelations = childrenOf(holon.id);
-  const childIds = childRelations.map(rel => rel.source_holon_id);
-  const childHolons = holons.filter(item => childIds.includes(item.id));
-
-  items.classList.toggle('ordered-items', childRelations.some(rel => rel.position !== null));
-  items.innerHTML = '';
-
-  childRelations.forEach(rel => {
-    const child = childHolons.find(item => item.id === rel.source_holon_id);
-    if (!child) return;
-
-    const li = document.createElement('li');
-    li.textContent = child.name;
-    li.title = relationshipName(rel.relationship_type_id) || rel.relationship_type || '';
-    li.onclick = () => openHolon(child);
-    items.appendChild(li);
-  });
-
-  if (!items.children.length) {
-    const li = document.createElement('li');
-    li.className = 'muted';
-    li.textContent = 'No related holons';
-    items.appendChild(li);
-  }
+  const related = relationships.filter(rel => rel.source_holon_id === holon.id || rel.target_holon_id === holon.id);
+  relationshipGrid?.setData(related);
 }
 
 async function applySession(session) {
   user = session?.user || null;
   auth.hidden = !!user;
   app.hidden = !user;
-  document.getElementById('user').textContent = user?.email || '';
+  userElement.textContent = user?.email || '';
 
   if (user) {
     await loadModel();
   } else {
     holons = [];
     relationships = [];
-    relationshipTypes = [];
     selectedHolon = null;
     tree.innerHTML = '';
-    lists.innerHTML = '';
-    items.innerHTML = '';
-    listView.hidden = true;
-    setSubheader('');
+    holonGrid?.destroy();
+    relationshipGrid?.destroy();
+    holonGrid = null;
+    relationshipGrid = null;
+    setSubheader('Sign in to open the Holon Workspace');
+    setStatus('');
   }
 }
 
 document.getElementById('signIn').onclick = async () => {
-  const result = await supabase.auth.signInWithPassword({
-    email: email.value.trim(),
-    password: password.value
-  });
+  const result = await supabase.auth.signInWithPassword({ email: email.value.trim(), password: password.value });
   if (result.error) return setStatus(result.error.message);
-  setStatus('');
   await applySession(result.data.session);
 };
 
 document.getElementById('signUp').onclick = async () => {
-  const result = await supabase.auth.signUp({
-    email: email.value.trim(),
-    password: password.value
-  });
+  const result = await supabase.auth.signUp({ email: email.value.trim(), password: password.value });
   if (result.error) return setStatus(result.error.message);
   if (result.data.session) await applySession(result.data.session);
   else setStatus('Account created. Check your email if confirmation is required.');
