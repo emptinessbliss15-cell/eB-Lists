@@ -17,15 +17,18 @@ async function api(path, opt = {})
 function status(s = '') 
 {
     $('status').textContent = s
+    console.log(s)
 }
 
 function signedIn(user) 
 {
+    status(`signedIn starting with user:${user}`)
     state.user = user;
     $('authout').hidden = !user;
     $('authin').hidden = !!user;
     $('app').hidden = !user;
     $('user').textContent = user?.email || ''
+    status("signedIn done")
 }
 
 async function signIn() 
