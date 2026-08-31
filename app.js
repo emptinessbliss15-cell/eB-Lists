@@ -6,7 +6,6 @@ const state = { session: null, user: null, lists: [], active: null, items: [], t
 
 async function api(path, opt = {}) 
 {
-    debugger;
     console.log("Starting api...");
     console.log(path, opt);
     const h = { apikey: SUPABASE_KEY, 'Content-Type': 'application/json', ...(opt.headers || {}) };
@@ -25,6 +24,7 @@ async function api(path, opt = {})
         d = t 
     }
     if (!r.ok) throw Error(d?.message || d?.error_description || t || r.statusText);
+    debugger;
     return d
 }
 
@@ -51,6 +51,7 @@ async function signIn()
     {
         status('Signing in…');
         const d = await api('/auth/v1/token?grant_type=password', { method: 'POST', body: JSON.stringify({ email: $('email').value.trim(), password: $('password').value }) });
+        debugger;
         console.log("signin response d =", d);
         console.log("signin response JSON =", JSON.stringify(d, null, 2));
         state.session = d;
