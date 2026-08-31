@@ -22,8 +22,8 @@ function status(s = '')
 function signedIn(user) 
 {
     state.user = user;
-    $('authout').hidden = !!user;
-    $('authin').hidden = !user;
+    $('authout').hidden = !user;
+    $('authin').hidden = !!user;
     $('app').hidden = !user;
     $('user').textContent = user?.email || ''
 }
@@ -359,8 +359,10 @@ function restore()
 document.addEventListener('click', e => { if (!e.target.closest('.context-menu')) document.getElementById('contextMenu')?.remove() });
  $('signIn').onclick = signIn;
  $('signUp').onclick = signUp;
- $('signOut').onclick = signOut; $('newList').onclick = createList;
+ $('signOut').onclick = signOut;
+ $('newList').onclick = createList;
  $('newItem').onclick = createItem; $('password').addEventListener('keydown', e => { if (e.key === 'Enter') signIn() });
+
  document.getElementById('refresh')?.addEventListener('click', () =>
 {
     window.location.reload();
