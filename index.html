@@ -12,53 +12,50 @@
 </head>
 <body>
 <div id="shell" class="eb-shell">
-<header class="eb-header">
-  <div class="eb-header-inner">
-    <div class="eb-header-refresh">
-      <button id="refresh" type="button">↻</button>
-    </div>
-    <div class="eb-row">
-      <strong>eB Lists</strong>
-    </div>
-    <section id="authout" class="signoutcard">
-      <!--<div class="eb-row" id="headerAuth" hidden><strong id="user"></strong></!-->
-        <strong id="user"></strong><button id="signOut" type="button">Sign out</button>
-    </section>
-    </div>
-    <section id="authin" class="signincard">
-    <!-- <h2>Sign in</h2></!--->
-      <form id="authForm">
-        <input id="email" type="email" placeholder="Email" autocomplete="email">
-        <input id="password" type="password" placeholder="Password" autocomplete="current-password">
-        <div>
-          <button id="signIn">Sign in</button>
-          <button id="signUp">Create account</button>
+    <header class="eb-header">
+      <div class="eb-header-inner">
+        <div class="eb-header-refresh">
+          <button id="refresh" type="button">↻</button>
         </div>
-      </form>
-    </section>
-</div>
-</header>
-<div class="eb-navigation">
-  <nav id="tree" class="eb-tree" aria-label="Context"></nav>
-<main class="eb-main">
-    <section id="app" class="card" hidden>
-        <div>
-            <input id="listName" placeholder="New list name"><label>
-            <input id="listOrdered" type="checkbox"> Ordered</label>
-            <button id="newList">Create list</button>
+        <div class="eb-row">
+          <strong>eB Lists</strong>
         </div>
-    <div id="lists">
+        <section id="authout" class="signoutcard">
+          <!--<div class="eb-row" id="headerAuth" hidden><strong id="user"></strong></!-->
+            <strong id="user"></strong><button id="signOut" type="button">Sign out</button>
+        </section>
+        </div>
+        <section id="authin" class="signincard">
+        <!-- <h2>Sign in</h2></!--->
+          <form id="authForm">
+            <input id="email" type="email" placeholder="Email" autocomplete="email">
+            <input id="password" type="password" placeholder="Password" autocomplete="current-password"><button id="signIn">Sign in</button> <button id="signUp">Create account</button>
+          </form>
+        </section>
     </div>
-    <div id="listView" hidden>
-      <h2 id="activeList"></h2>
-      <div class="muted" id="listMode"></div>
-      <input id="item" placeholder="Add an item">
-      <button id="newItem">Add</button><ul id="items"></ul>
-    </div>
-  </section>
-  <p id="status" class="muted"></p>
-</main>
-</div>
+    </header>
+
+  <div class="eb-navigation">
+    <nav id="tree" class="eb-tree" aria-label="Context"></nav>
+  </div>div>
+
+  <main class="eb-main">
+      <section id="app" class="card" hidden>
+          <div>
+              <input id="listName" placeholder="New list name"><label>
+              <input id="listOrdered" type="checkbox"> Ordered</label>
+              <button id="newList">Create list</button>
+          </div>
+          <div id="lists"></div>
+        <div id="listView" hidden>
+          <h2 id="activeList"></h2>
+          <div class="muted" id="listMode"></div>
+          <input id="item" placeholder="Add an item">
+          <button id="newItem">Add</button><ul id="items"></ul>
+        </div>
+    </section>
+    <p id="status" class="muted"></p>
+  </main>
 </div>
 
 <script src="./vendor/vanillagrid.js"></script>
