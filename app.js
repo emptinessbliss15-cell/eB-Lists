@@ -12,7 +12,9 @@ async function api(path, opt = {})
     console.log("h =", JSON.stringify(h, null, 2));
     if (state.session?.access_token) h.Authorization = `Bearer ${state.session.access_token}`;
     const r = await fetch(SUPABASE_URL + path, { ...opt, headers: h });
+    console.log("r =", JSON.stringify(r, null, 2));
     const t = await r.text(); let d = null;
+    console.log("t =", JSON.stringify(t, null, 2));
     try { d = t ? JSON.parse(t) : null } catch { d = t } if (!r.ok) throw Error(d?.message || d?.error_description || t || r.statusText);
     return d
 }
