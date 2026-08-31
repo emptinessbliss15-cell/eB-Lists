@@ -1,92 +1,155 @@
 const supabase = window.supabase.createClient('https://zaabghrczrbqkxrhkinj.supabase.co', 'sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF');
+
 const status = document.getElementById('status');
 const app = document.getElementById('app');
 const auth = document.getElementById('auth');
 const email = document.getElementById('email');
 const password = document.getElementById('password');
+const tree = document.getElementById('tree');
 const lists = document.getElementById('lists');
 const items = document.getElementById('items');
+const listView = document.getElementById('listView');
+const activeList = document.getElementById('activeList');
+const listMode = document.getElementById('listMode');
+const subheader = document.getElementById('subheader');
+
 let user = null;
-let activeList = null;
+let selectedHolon = null;
+let holons = [];
+let relationships = [];
+let relationshipTypes = [];
 
-function setStatus(text) { status.textContent = text || ''; }
+function setStatus(text) {
+  status.textContent = text || '';
+}
 
-async function refreshLists() {
-  const { data, error } = await supabase.from('lists').select('*').order('created_at');
-  if (error) return setStatus(error.message);
+function setSubheader(text) {
+  subheader.textContent = text || '';
+}
+
+function byId(rows) {
+  return new Map(rows.map(row => [row.id, row]));
+}
+
+async function loadModel() {
+  const [holonResult, relationshipResult, typeResult] = await Promise.all([
+    supabase.from('holons_view').select('*').order('created_at'),
+    supabase.from('relationships_view').select('*').order('position').order('created_at'),
+    supabase.from('relationship_types').select('*').order('name')
+  ]);
+
+  if (holonResult.error) return setStatus(holonResult.error.message);
+  if (relationshipResult.error) return setStatus(relationshipResult.error.message);
+  if (typeResult.error) return setStatus(typeResult.error.message);
+
+  holons = holonResult.data || [];
+  relationships = relationshipResult.data || [];
+  relationshipTypes = typeResult.data || [];
+
+  renderTree();
+  renderHolonList();
+}
+
+function relationshipName(id) {
+  return relationshipTypes.find(type => type.id === id)?.name || '';
+}
+
+function childrenOf(parentId) {
+  return relationships
+    .filter(rel => rel.target_holon_id === parentId)
+    .sort((a, b) => (a.position ?? 999999) - (b.position ?? 999999));
+}
+
+function renderTree() {
+  tree.innerHTML = '';
+  const roots = holons.filter(holon => !relationships.some(rel => rel.source_holon_id === holon.id));
+  const rootRows = roots.length ? roots : holons.slice(0, 1);
+
+  rootRows.forEach(root => {
+    tree.appendChild(renderTreeNode(root, new Set()));
+  });
+}
+
+function renderTreeNode(holon, path) {
+  const li = document.createElement('div');
+  li.className = 'tree-node';
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `tree-link${selectedHolon?.id === holon.id ? ' selected' : ''}`;
+  button.textContent = holon.name;
+  button.title = `${holon.name} · ${holon.holon_type || 'holon'}`;
+  button.onclick = () => openHolon(holon);
+  li.appendChild(button);
+
+  if (path.has(holon.id)) return li;
+  const nextPath = new Set(path);
+  nextPath.add(holon.id);
+
+  const children = childrenOf(holon.id);
+  if (children.length) {
+    const group = document.createElement('div');
+    group.className = 'tree-children';
+    children.forEach(rel => {
+      const child = holons.find(item => item.id === rel.source_holon_id);
+      if (!child) return;
+      const childNode = renderTreeNode(child, nextPath);
+      const relLabel = relationshipName(rel.relationship_type_id) || rel.relationship_type || '';
+      if (relLabel) childNode.dataset.relationship = relLabel;
+      group.appendChild(childNode);
+    });
+    li.appendChild(group);
+  }
+
+  return li;
+}
+
+function renderHolonList() {
   lists.innerHTML = '';
-  data.forEach(list => {
+  holons.forEach(holon => {
     const li = document.createElement('li');
-    li.textContent = `${list.name} ${list.ordered ? '· ordered' : '· unordered'}`;
-    li.onclick = () => openList(list);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'list-link';
+    button.textContent = `${holon.name} · ${holon.holon_type || 'holon'}`;
+    button.onclick = () => openHolon(holon);
+    li.appendChild(button);
     lists.appendChild(li);
   });
 }
 
-async function renameActiveList() {
-  if (!activeList) return;
-  const input = document.getElementById('activeListEdit');
-  const name = input.value.trim();
-  if (!name) return;
-  const result = await supabase.from('lists').update({ name }).eq('id', activeList.id).eq('owner_id', user.id);
-  if (result.error) return setStatus(result.error.message);
-  activeList.name = name;
-  showActiveListName();
-  await refreshLists();
-  setStatus('');
-}
+async function openHolon(holon) {
+  selectedHolon = holon;
+  renderTree();
+  setSubheader(`${holon.holon_type || 'Holon'} · ${holon.name}`);
+  activeList.textContent = holon.name;
+  listMode.textContent = holon.holon_type || 'Holon';
+  listView.hidden = false;
 
-function showActiveListName() {
-  const title = document.getElementById('activeList');
-  title.innerHTML = '';
-  const name = document.createElement('span');
-  name.textContent = activeList.name;
-  name.title = 'Click to rename';
-  name.className = 'editable-list-name';
-  name.onclick = beginRename;
-  title.appendChild(name);
-}
+  const childRelations = childrenOf(holon.id);
+  const childIds = childRelations.map(rel => rel.source_holon_id);
+  const childHolons = holons.filter(item => childIds.includes(item.id));
 
-function beginRename() {
-  if (!activeList || document.getElementById('activeListEdit')) return;
-  const title = document.getElementById('activeList');
-  title.innerHTML = '';
-  const input = document.createElement('input');
-  input.id = 'activeListEdit';
-  input.value = activeList.name;
-  input.setAttribute('aria-label', 'List name');
-  title.appendChild(input);
-  input.focus();
-  input.select();
-  input.addEventListener('keydown', event => {
-    if (event.key === 'Enter') renameActiveList();
-    if (event.key === 'Escape') showActiveListName();
-  });
-  input.addEventListener('blur', () => renameActiveList());
-}
-
-async function openList(list) {
-  activeList = list;
-  showActiveListName();
-  document.getElementById('listMode').textContent = list.ordered ? 'Ordered' : 'Unordered';
-  items.classList.toggle('ordered-items', !!list.ordered);
-  document.getElementById('listView').hidden = false;
-  await refreshItems();
-}
-
-async function refreshItems() {
-  const { data, error } = await supabase.from('list_items').select('*').eq('list_id', activeList.id).order('position').order('created_at');
-  if (error) return setStatus(error.message);
+  items.classList.toggle('ordered-items', childRelations.some(rel => rel.position !== null));
   items.innerHTML = '';
-  data.forEach(item => {
+
+  childRelations.forEach(rel => {
+    const child = childHolons.find(item => item.id === rel.source_holon_id);
+    if (!child) return;
+
     const li = document.createElement('li');
-    li.textContent = item.completed ? '✓ ' + item.text : item.text;
-    li.onclick = async () => {
-      const result = await supabase.from('list_items').update({ completed: !item.completed }).eq('id', item.id);
-      if (result.error) setStatus(result.error.message); else refreshItems();
-    };
+    li.textContent = child.name;
+    li.title = relationshipName(rel.relationship_type_id) || rel.relationship_type || '';
+    li.onclick = () => openHolon(child);
     items.appendChild(li);
   });
+
+  if (!items.children.length) {
+    const li = document.createElement('li');
+    li.className = 'muted';
+    li.textContent = 'No related holons';
+    items.appendChild(li);
+  }
 }
 
 async function applySession(session) {
@@ -94,54 +157,50 @@ async function applySession(session) {
   auth.hidden = !!user;
   app.hidden = !user;
   document.getElementById('user').textContent = user?.email || '';
-  if (user) await refreshLists();
+
+  if (user) {
+    await loadModel();
+  } else {
+    holons = [];
+    relationships = [];
+    relationshipTypes = [];
+    selectedHolon = null;
+    tree.innerHTML = '';
+    lists.innerHTML = '';
+    items.innerHTML = '';
+    listView.hidden = true;
+    setSubheader('');
+  }
 }
 
 document.getElementById('signIn').onclick = async () => {
-  const result = await supabase.auth.signInWithPassword({ email: email.value.trim(), password: password.value });
+  const result = await supabase.auth.signInWithPassword({
+    email: email.value.trim(),
+    password: password.value
+  });
   if (result.error) return setStatus(result.error.message);
   setStatus('');
   await applySession(result.data.session);
 };
 
 document.getElementById('signUp').onclick = async () => {
-  const result = await supabase.auth.signUp({ email: email.value.trim(), password: password.value });
+  const result = await supabase.auth.signUp({
+    email: email.value.trim(),
+    password: password.value
+  });
   if (result.error) return setStatus(result.error.message);
   if (result.data.session) await applySession(result.data.session);
   else setStatus('Account created. Check your email if confirmation is required.');
 };
 
 document.getElementById('signOut').onclick = async () => {
-  await supabase.auth.signOut({ scope: 'local' });
-  activeList = null;
-  document.getElementById('listView').hidden = true;
+  const result = await supabase.auth.signOut({ scope: 'local' });
+  if (result.error) return setStatus(result.error.message);
   await applySession(null);
 };
 
-document.getElementById('newList').onclick = async () => {
-  const input = document.getElementById('listName');
-  const name = input.value.trim();
-  if (!name) return;
-  const ordered = document.getElementById('listOrdered').checked;
-  const result = await supabase.from('lists').insert({ name, owner_id: user.id, ordered });
-  if (result.error) return setStatus(result.error.message);
-  input.value = '';
-  document.getElementById('listOrdered').checked = false;
-  await refreshLists();
-};
-
-document.getElementById('newItem').onclick = async () => {
-  const input = document.getElementById('item');
-  const text = input.value.trim();
-  if (!text || !activeList) return;
-  const latest = await supabase.from('list_items').select('position').eq('list_id', activeList.id).order('position', { ascending: false }).limit(1);
-  if (latest.error) return setStatus(latest.error.message);
-  const position = (latest.data?.[0]?.position ?? -1) + 1;
-  const result = await supabase.from('list_items').insert({ list_id: activeList.id, owner_id: user.id, text, position });
-  if (result.error) return setStatus(result.error.message);
-  input.value = '';
-  await refreshItems();
-};
-
 supabase.auth.onAuthStateChange((_event, session) => applySession(session));
-supabase.auth.getSession().then(({ data }) => applySession(data.session));
+supabase.auth.getSession().then(({ data, error }) => {
+  if (error) return setStatus(error.message);
+  applySession(data.session);
+});
