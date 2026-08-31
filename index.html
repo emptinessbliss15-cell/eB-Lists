@@ -7,58 +7,50 @@
 <link rel="stylesheet" href="./css/app.css">
 <link rel="stylesheet" href="./style.css">
 <link rel="stylesheet" href="./vendor/vanillagrid.css">
-<link rel="stylesheet" href="./css/app.css">
 <link rel="icon" href="./favicon.png">
 </head>
 <body>
 <div id="shell" class="eb-shell">
     <header class="eb-header">
       <div class="eb-header-inner">
-        <div class="eb-header-refresh">
-          <button id="refresh" type="button">↻</button>
-        </div>
+        <div class="eb-header-refresh"><button id="refresh" type="button">↻</button></div>
+        <div class="eb-row"><strong>eB Lists</strong><span class="muted">Holon Workspace</span></div>
         <div class="eb-row">
-          <strong>eB Lists</strong>
-        </div>
-        <section id="authout" class="signoutcard">
-          <!--<div class="eb-row" id="headerAuth" hidden><strong id="user"></strong></!-->
+          <section id="authout" class="signoutcard">
             <strong id="user"></strong><button id="signOut" type="button">Sign out</button>
-        </section>
+          </section>
         </div>
-        <section id="authin" class="signincard">
-        <!-- <h2>Sign in</h2></!--->
-          <form id="authForm">
-            <input id="email" type="email" placeholder="Email" autocomplete="email">
-            <input id="password" type="password" placeholder="Password" autocomplete="current-password"><button id="signIn">Sign in</button> <button id="signUp">Create account</button>
-          </form>
-        </section>
-    </div>
+      </div>
+      <section id="authin" class="signincard">
+        <form id="authForm">
+          <input id="email" type="email" placeholder="Email" autocomplete="email">
+          <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+          <button id="signIn" type="button">Sign in</button>
+          <button id="signUp" type="button">Create account</button>
+        </form>
+      </section>
     </header>
 
   <div class="eb-navigation">
-    <nav id="tree" class="eb-tree" aria-label="Context"></nav>
-  </div>
-
-  <main class="eb-main">
+    <nav id="tree" class="eb-tree" aria-label="Holon tree"></nav>
+    <main class="eb-main">
       <section id="app" class="card" hidden>
-          <div>
-              <input id="listName" placeholder="New list name"><label>
-              <input id="listOrdered" type="checkbox"> Ordered</label>
-              <button id="newList">Create list</button>
-          </div>
-          <div id="lists"></div>
+        <div class="toolbar">
+          <strong>Holon Workspace</strong>
+          <span class="muted">Select a Holon in the tree.</span>
+        </div>
+        <div id="lists"></div>
         <div id="listView" hidden>
           <h2 id="activeList"></h2>
           <div class="muted" id="listMode"></div>
-          <input id="item" placeholder="Add an item">
-          <button id="newItem">Add</button><ul id="items"></ul>
+          <ul id="items" class="items"></ul>
         </div>
-    </section>
-    <p id="status" class="muted"></p>
-  </main>
+      </section>
+      <p id="status" class="status muted"></p>
+    </main>
+  </div>
 </div>
-
 <script src="./vendor/vanillagrid.js"></script>
 <script src="./app.js"></script>
-</body></html>
-
+</body>
+</html>
