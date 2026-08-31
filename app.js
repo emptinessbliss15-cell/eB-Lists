@@ -37,6 +37,7 @@ async function signIn()
     {
         status('Signing in…');
         const d = await api('/auth/v1/token?grant_type=password', { method: 'POST', body: JSON.stringify({ email: $('email').value.trim(), password: $('password').value }) });
+        status(d);
         state.session = d;
         localStorage.setItem('eb_session', JSON.stringify(d));
         signedIn(d.user);
