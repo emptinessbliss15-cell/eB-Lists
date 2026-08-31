@@ -6,6 +6,7 @@ const state = { session: null, user: null, lists: [], active: null, items: [], t
 
 async function api(path, opt = {}) 
 {
+    debugger;
     console.log("Starting api...");
     console.log(path, opt);
     const h = { apikey: SUPABASE_KEY, 'Content-Type': 'application/json', ...(opt.headers || {}) };
@@ -13,7 +14,8 @@ async function api(path, opt = {})
     if (state.session?.access_token) h.Authorization = `Bearer ${state.session.access_token}`;
     const r = await fetch(SUPABASE_URL + path, { ...opt, headers: h });
     console.log("r =", JSON.stringify(r, null, 2));
-    const t = await r.text(); let d = null;
+    const t = await r.text();
+    let d = null;
     console.log("t =", JSON.stringify(t, null, 2));
     try 
     { 
