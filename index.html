@@ -1,36 +1,107 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>eB Lists</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="./vendor/vanillagrid.css">
-<style>
-:root{color-scheme:light}
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,sans-serif;color:#222;background:#f7f7f7}
-button,input{font:inherit}
-button{cursor:pointer}
-.eb-shell{min-height:100vh;display:flex;flex-direction:column}
-.eb-header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #ccc}
-.eb-header-inner{min-height:48px;padding:6px 12px;display:flex;align-items:center;gap:16px}
-.eb-brand{font-weight:700;white-space:nowrap}.eb-app-name{opacity:.65}.eb-header-spacer{flex:1}
-.eb-row{display:flex;align-items:center;gap:8px}.eb-navigation{display:grid;grid-template-columns:280px minmax(0,1fr);min-height:calc(100vh - 49px)}
-.eb-tree{padding:12px;border-right:1px solid #ccc;background:#fff;overflow:auto}.tree-node{margin:1px 0}
-.tree-link{display:block;width:100%;border:0;background:transparent;text-align:left;padding:5px 7px;border-radius:5px}.tree-link:hover,.tree-link.selected{background:#e9e9e9}
-.tree-children{margin-left:15px;border-left:1px solid #ddd;padding-left:5px}.eb-main{min-width:0;padding:12px}
-.eb-subheader{font-size:14px;font-weight:600;padding:8px 0;border-bottom:1px solid #ddd;margin-bottom:12px}.card{border:1px solid #ccc;border-radius:8px;background:#fff;padding:14px}
-#auth{max-width:420px}#auth input{width:100%;margin:4px 0;padding:8px}#auth button{margin:5px 5px 0 0;padding:7px 10px}
-#app h2{margin-top:0}.workspace-grid{display:grid;grid-template-columns:minmax(240px,360px) minmax(0,1fr);gap:18px}.panel{min-width:0}.panel h3{margin:0 0 8px}
-#grid{min-height:420px}.muted{opacity:.7}.cf-build-status{font-size:12px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}.cf-build-dot{font-size:11px}
-@media(max-width:760px){.eb-navigation{grid-template-columns:1fr}.eb-tree{border-right:0;border-bottom:1px solid #ccc;max-height:35vh}.workspace-grid{grid-template-columns:1fr}}
-</style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>eB Lists</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="./vendor/vanillagrid.css">
+    <link rel="stylesheet" href="./app.css">
 </head>
 <body>
-<div id="shell" class="eb-shell">
-<header id="header" class="eb-header"><div class="eb-header-inner"><div class="eb-brand">eB Lists</div><div class="eb-app-name">Holon Workspace</div><div class="eb-header-spacer"></div><div class="cf-build-status" title="Cloudflare deployment status"><span class="cf-build-dot">●</span><span>CF: deployed</span></div><div class="eb-row" id="headerAuth" hidden><strong id="user"></strong><button id="signOut" type="button">Sign out</button></div></div></header>
-<div class="eb-navigation"><nav id="tree" class="eb-tree" aria-label="Holon tree"></nav><main class="eb-main"><div id="subheader" class="eb-subheader">Sign in to open the Holon Workspace</div>
-<section id="auth" class="card"><h2>Sign in</h2><input id="email" type="email" placeholder="Email" autocomplete="email"><input id="password" type="password" placeholder="Password" autocomplete="current-password"><div><button id="signIn" type="button">Sign in</button><button id="signUp" type="button">Create account</button></div></section>
-<section id="app" class="card" hidden><div class="workspace-grid"><section class="panel"><h3>Holons</h3><div id="grid" aria-label="Holons"></div></section><section class="panel"><h3 id="activeList">Relationships</h3><div class="muted" id="listMode"></div><div id="detailGrid" aria-label="Relationships"></div></section></div></section><p id="status" class="muted"></p></main></div>
-</div><script src="./vendor/vanillagrid.js"></script><script type="module" src="./app.js"></script><script>const app=document.getElementById('app');const headerAuth=document.getElementById('headerAuth');const syncHeaderAuth=()=>{headerAuth.hidden=app.hidden};new MutationObserver(syncHeaderAuth).observe(app,{attributes:true,attributeFilter:['hidden']});syncHeaderAuth();</script></body></html>
+    <div id="shell" class="eb-shell">
+        <header id="header" class="eb-header">
+            <div class="eb-header-inner">
+                <div class="eb-brand">eB Lists</div>
+                <div class="eb-app-name">Holon Workspace</div>
+                <div class="eb-header-spacer"></div>
+                <div
+                    class="cf-build-status"
+                    title="Cloudflare deployment status"
+                >
+                    <span class="cf-build-dot">●</span>
+                    <span>CF: deployed</span>
+                </div>
+                <div class="eb-row" id="headerAuth" hidden>
+                    <strong id="user"></strong>
+                    <button id="signOut" type="button">Sign out</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="eb-navigation">
+            <nav
+                id="tree"
+                class="eb-tree"
+                aria-label="Holon tree"
+            ></nav>
+
+            <main class="eb-main">
+                <div id="subheader" class="eb-subheader">
+                    Sign in to open the Holon Workspace
+                </div>
+
+                <section id="auth" class="card">
+                    <h2>Sign in</h2>
+                    <input
+                        id="email"
+                        type="email"
+                        placeholder="Email"
+                        autocomplete="email"
+                    >
+                    <input
+                        id="password"
+                        type="password"
+                        placeholder="Password"
+                        autocomplete="current-password"
+                    >
+                    <div>
+                        <button id="signIn" type="button">Sign in</button>
+                        <button id="signUp" type="button">Create account</button>
+                    </div>
+                </section>
+
+                <section id="app" class="card" hidden>
+                    <div class="workspace-grid">
+                        <section class="panel">
+                            <h3>Holons</h3>
+                            <div id="grid" aria-label="Holons"></div>
+                        </section>
+
+                        <section class="panel">
+                            <h3 id="activeList">Relationships</h3>
+                            <div class="muted" id="listMode"></div>
+                            <div
+                                id="detailGrid"
+                                aria-label="Relationships"
+                            ></div>
+                        </section>
+                    </div>
+                </section>
+
+                <p id="status" class="muted"></p>
+            </main>
+        </div>
+    </div>
+
+    <script src="./vendor/vanillagrid.js"></script>
+    <script type="module" src="./app.js"></script>
+    <script>
+        const app = document.getElementById('app');
+        const headerAuth = document.getElementById('headerAuth');
+
+        const syncHeaderAuth = () =>
+        {
+            headerAuth.hidden = app.hidden;
+        };
+
+        new MutationObserver(syncHeaderAuth).observe(app,
+        {
+            attributes: true,
+            attributeFilter: ['hidden']
+        });
+
+        syncHeaderAuth();
+    </script>
+</body>
+</html>
