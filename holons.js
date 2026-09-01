@@ -1,5 +1,6 @@
 export async function loadHolons(supabase)
 {
+  debugger;
   const [holonResult, relationshipResult] = await Promise.all([
     supabase.from('holons_view').select('*').order('created_at'),
     supabase.from('relationships_view').select('*').order('position').order('created_at'),
