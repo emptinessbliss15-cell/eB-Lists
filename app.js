@@ -1,3 +1,8 @@
+debugger;
+
+console.log("=== NEW APP.JS LOADED ===");
+console.log("app.js timestamp test");
+
 import { initAuth } from './auth.js';
 import { loadHolons } from './holons.js';
 import { createTree } from './tree.js';
