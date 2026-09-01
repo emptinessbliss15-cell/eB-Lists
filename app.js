@@ -62,6 +62,7 @@ function openHolon(holon)
 
 function createViews()
 {
+  debugger;
   treeGrid?.destroy();
   holonGrid?.destroy();
   relationshipGrid?.destroy();
@@ -88,6 +89,7 @@ function createViews()
 async function loadModel()
 {
   setStatus('Loading Holon model…');
+  debugger;
 
   try
   {
