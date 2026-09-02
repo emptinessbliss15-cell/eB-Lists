@@ -30,11 +30,19 @@
         </header>
 
         <div class="eb-navigation">
-            <nav
-                id="tree"
-                class="eb-tree"
-                aria-label="Holon tree"
-            ></nav>
+            <nav class="eb-tree" aria-label="Holon tree">
+                <div class="tree-controls">
+                    <label>
+                        Root
+                        <select id="treeRoot"></select>
+                    </label>
+                    <label>
+                        Relationship
+                        <select id="treeRelationship"></select>
+                    </label>
+                </div>
+                <div id="treeGrid" aria-label="Holon tree"></div>
+            </nav>
 
             <main class="eb-main">
                 <div id="subheader" class="eb-subheader">
