@@ -97,6 +97,44 @@ function populateTreeSelectors()
   if (relationship) elements.treeRelationship.value = relationship.id;
 }
 
+async function deleteHolon(holon)
+{
+  const name = holon.name || '(unnamed)';
+  if (!confirm(`Delete “${name}”?`)) return;
+
+  setStatus(`Deleting ${name}…`);
+
+  try
+  {
+    const relationshipResult = await supabase
+      .from('relationships')
+      .delete()
+      .or(`source_holon_id.eq.${holon.id},target_holon_id.eq.${holon.id}`);
+
+    if (relationshipResult.error)
+    {
+      throw new Error(`Relationships: ${relationshipResult.error.message}`);
+    }
+
+    const holonResult = await supabase
+      .from('holons')
+      .delete()
+      .eq('id', holon.id);
+
+    if (holonResult.error)
+    {
+      throw new Error(`Holon: ${holonResult.error.message}`);
+    }
+
+    await loadModel();
+    setStatus(`Deleted ${name}`);
+  }
+  catch (error)
+  {
+    setStatus(error.message || 'Unable to delete Holon');
+  }
+}
+
 function createViews()
 {
   debugger;
@@ -111,6 +149,7 @@ function createViews()
     rootId: elements.treeRoot.value,
     relationshipTypeId: elements.treeRelationship.value,
     onSelect: openHolon,
+    onDelete: deleteHolon,
   });
 
   holonGrid = createHolonGrid({
