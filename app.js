@@ -23,7 +23,9 @@ const elements = {
   auth: document.getElementById('auth'),
   email: document.getElementById('email'),
   password: document.getElementById('password'),
-  tree: document.getElementById('tree'),
+  tree: document.getElementById('treeGrid'),
+  treeRoot: document.getElementById('treeRoot'),
+  treeRelationship: document.getElementById('treeRelationship'),
   grid: document.getElementById('grid'),
   detailGrid: document.getElementById('detailGrid'),
   activeList: document.getElementById('activeList'),
@@ -37,6 +39,7 @@ const elements = {
 
 let holons = [];
 let relationships = [];
+let relationshipTypes = [];
 let treeGrid = null;
 let holonGrid = null;
 let relationshipGrid = null;
@@ -65,6 +68,35 @@ function openHolon(holon)
   setRelationships(relationshipGrid, related);
 }
 
+function populateTreeSelectors()
+{
+  elements.treeRoot.innerHTML = '';
+  holons.forEach(holon =>
+  {
+    const option = document.createElement('option');
+    option.value = holon.id;
+    option.textContent = holon.name || '(unnamed)';
+    elements.treeRoot.appendChild(option);
+  });
+
+  elements.treeRelationship.innerHTML = '';
+  relationshipTypes.forEach(type =>
+  {
+    const option = document.createElement('option');
+    option.value = type.id;
+    option.textContent = type.name || '(unnamed)';
+    elements.treeRelationship.appendChild(option);
+  });
+
+  const root = holons.find(holon => holon.name === 'Lists Tree');
+  const relationship = relationshipTypes.find(type =>
+    type.name?.toLowerCase() === 'branch of'
+  );
+
+  if (root) elements.treeRoot.value = root.id;
+  if (relationship) elements.treeRelationship.value = relationship.id;
+}
+
 function createViews()
 {
   debugger;
@@ -76,6 +108,8 @@ function createViews()
     element: elements.tree,
     holons,
     relationships,
+    rootId: elements.treeRoot.value,
+    relationshipTypeId: elements.treeRelationship.value,
     onSelect: openHolon,
   });
 
@@ -101,7 +135,9 @@ async function loadModel()
     const model = await loadHolons(supabase);
     holons = model.holons;
     relationships = model.relationships;
+    relationshipTypes = model.relationshipTypes;
 
+    populateTreeSelectors();
     createViews();
     setStatus(`${holons.length} holons · ${relationships.length} relationships`);
   }
@@ -126,6 +162,7 @@ async function applySession(session)
 
   holons = [];
   relationships = [];
+  relationshipTypes = [];
   treeGrid?.destroy();
   holonGrid?.destroy();
   relationshipGrid?.destroy();
@@ -135,6 +172,9 @@ async function applySession(session)
   setSubheader('Sign in to open the Holon Workspace');
   setStatus('');
 }
+
+elements.treeRoot.addEventListener('change', createViews);
+elements.treeRelationship.addEventListener('change', createViews);
 
 const authResult = initAuth({
   supabase,
