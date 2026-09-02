@@ -16,7 +16,7 @@ export function createTree({ element, holons, relationships, rootId, relationshi
     tree: {
       enabled: true,
       childrenKey: 'children',
-      initiallyExpanded: true,
+      initiallyExpanded: false,
     },
     pagination: false,
     filterable: false,
