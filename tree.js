@@ -1,8 +1,8 @@
 import { buildTreeData } from './holons.js';
 
-export function createTree({ element, holons, relationships, onSelect })
+export function createTree({ element, holons, relationships, rootId, relationshipTypeId, onSelect })
 {
-  const data = buildTreeData(holons, relationships);
+  const data = buildTreeData(holons, relationships, rootId, relationshipTypeId);
 
   return new VanillaGrid(element, {
     data,
@@ -33,7 +33,7 @@ export function createTree({ element, holons, relationships, onSelect })
   });
 }
 
-export function updateTree(grid, holons, relationships)
+export function updateTree(grid, holons, relationships, rootId, relationshipTypeId)
 {
-  grid?.setData(buildTreeData(holons, relationships));
+  grid?.setData(buildTreeData(holons, relationships, rootId, relationshipTypeId));
 }
