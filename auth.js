@@ -1,4 +1,4 @@
-function buildAuth(container, { supabase, onSession, setStatus })
+function buildAuth(container, { api, onSession, setStatus })
 {
   container.replaceChildren();
   container.className = 'eb-auth';
@@ -55,10 +55,7 @@ function buildAuth(container, { supabase, onSession, setStatus })
 
   signIn.addEventListener('click', async () =>
   {
-    const result = await supabase.auth.signInWithPassword({
-      email: email.value.trim(),
-      password: password.value,
-    });
+    const result = await api.auth.signIn(email.value.trim(), password.value);
 
     if (result.error)
     {
@@ -72,10 +69,7 @@ function buildAuth(container, { supabase, onSession, setStatus })
 
   signUp.addEventListener('click', async () =>
   {
-    const result = await supabase.auth.signUp({
-      email: email.value.trim(),
-      password: password.value,
-    });
+    const result = await api.auth.signUp(email.value.trim(), password.value);
 
     if (result.error)
     {
@@ -96,7 +90,7 @@ function buildAuth(container, { supabase, onSession, setStatus })
 
   signOut.addEventListener('click', async () =>
   {
-    const result = await supabase.auth.signOut({ scope: 'local' });
+    const result = await api.auth.signOut();
 
     if (result.error)
     {
@@ -121,7 +115,7 @@ function buildAuth(container, { supabase, onSession, setStatus })
     summary.title = currentUser ? `Signed in as ${currentUser.email}` : 'Sign in';
   };
 
-  supabase.auth.onAuthStateChange((_event, session) =>
+  api.auth.onAuthStateChange((_event, session) =>
   {
     render(session);
     onSession(session);
@@ -129,12 +123,12 @@ function buildAuth(container, { supabase, onSession, setStatus })
 
   render(null);
 
-  return supabase.auth.getSession();
+  return api.auth.getSession();
 }
 
-export function initAuth({ supabase, container, onSession, setStatus })
+export function initAuth({ api, container, onSession, setStatus })
 {
   if (!container) throw new Error('Auth container not found');
-  buildAuth(container, { supabase, onSession, setStatus });
-  return supabase.auth.getSession();
+  buildAuth(container, { api, onSession, setStatus });
+  return api.auth.getSession();
 }
