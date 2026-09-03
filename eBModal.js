@@ -1,10 +1,13 @@
+import { createEBComboBox } from './eBComboBox.js';
+
 let activeModal = null;
 
 function closeModal(result = null)
 {
   if (!activeModal) return;
-  const { overlay, resolve } = activeModal;
+  const { overlay, resolve, comboBoxes } = activeModal;
   activeModal = null;
+  comboBoxes.forEach(combo => combo.destroy());
   overlay.remove();
   resolve(result);
 }
@@ -32,6 +35,8 @@ export function showModal({ title, fields = [], submitLabel = 'Save', cancelLabe
     body.className = 'eb-modal-body';
 
     const controls = new Map();
+    const comboBoxes = [];
+
     fields.forEach(field =>
     {
       const label = document.createElement('label');
@@ -42,6 +47,8 @@ export function showModal({ title, fields = [], submitLabel = 'Save', cancelLabe
       label.appendChild(caption);
 
       let control;
+      let combo = null;
+
       if (field.type === 'select')
       {
         control = document.createElement('select');
@@ -54,6 +61,21 @@ export function showModal({ title, fields = [], submitLabel = 'Save', cancelLabe
           control.appendChild(item);
         });
       }
+      else if (field.type === 'combobox')
+      {
+        control = document.createElement('input');
+        control.type = 'text';
+        control.placeholder = field.placeholder || 'Type to search…';
+        combo = createEBComboBox(control, {
+          source: field.options || [],
+          multiple: !!field.multiple,
+          allowCustom: !!field.allowCustom,
+          minChars: field.minChars ?? 1,
+          maxItems: field.maxItems ?? null,
+        });
+        comboBoxes.push(combo);
+        if (field.value != null && field.value !== '') combo.setValue(field.value, true);
+      }
       else
       {
         control = document.createElement('input');
@@ -63,10 +85,10 @@ export function showModal({ title, fields = [], submitLabel = 'Save', cancelLabe
 
       control.name = field.name;
       control.required = !!field.required;
-      if (field.placeholder) control.placeholder = field.placeholder;
-      label.appendChild(control);
+      if (field.placeholder && field.type !== 'combobox') control.placeholder = field.placeholder;
+      label.appendChild(control.closest('.hcg-autocomplete') || control);
       body.appendChild(label);
-      controls.set(field.name, control);
+      controls.set(field.name, { control, combo, field });
     });
 
     const footer = document.createElement('div');
@@ -79,7 +101,7 @@ export function showModal({ title, fields = [], submitLabel = 'Save', cancelLabe
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
 
-    activeModal = { overlay, resolve };
+    activeModal = { overlay, resolve, comboBoxes };
 
     const cancel = () => closeModal(null);
     header.querySelector('.eb-modal-close').addEventListener('click', cancel);
@@ -92,7 +114,11 @@ export function showModal({ title, fields = [], submitLabel = 'Save', cancelLabe
     dialog.addEventListener('submit', event =>
     {
       event.preventDefault();
-      const values = Object.fromEntries([...controls].map(([name, control]) => [name, control.value]));
+      const values = Object.fromEntries([...controls].map(([name, entry]) =>
+      {
+        if (entry.combo) return [name, entry.combo.getValue()];
+        return [name, entry.control.value];
+      }));
       closeModal(values);
     });
 
