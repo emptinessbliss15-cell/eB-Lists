@@ -12,7 +12,8 @@ function buildAuth(container, { supabase, onSession, setStatus })
   summary.title = 'Account';
 
   const icon = document.createElement('span');
-  icon.textContent = '●';
+  icon.textContent = '👤';
+  icon.setAttribute('aria-hidden', 'true');
   summary.appendChild(icon);
 
   const panel = document.createElement('div');
