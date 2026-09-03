@@ -6,6 +6,7 @@ import { loadHolons } from './holons.js';
 import { createTree } from './tree.js';
 import { eBStatus } from './eBStatus.js';
 import { createHolonGrid, createRelationshipGrid, setRelationships } from './grid.js';
+import { showModal } from './eBModal.js';
 
 const status = eBStatus;
 const elements = {
@@ -32,21 +33,70 @@ function populateTreeSelectors() {
   if (root) elements.treeRoot.value = root.id;
   if (relationship) elements.treeRelationship.value = relationship.id;
 }
+function holonTypeOptions(selected = '') {
+  const types = [...new Set(holons.map(h => h.holon_type).filter(Boolean))];
+  if (!types.includes('Holon')) types.unshift('Holon');
+  if (selected && !types.includes(selected)) types.unshift(selected);
+  return types.map(type => ({ value: type, label: type }));
+}
+function holonOptions(includeNone = false, selected = '') {
+  const options = holons.map(h => ({ value: h.id, label: h.name || '(unnamed)' }));
+  if (includeNone) options.unshift({ value: '', label: '— None —' });
+  if (selected && !options.some(option => option.value === selected)) options.unshift({ value: selected, label: '(current)' });
+  return options;
+}
+function relationshipTypeOptions(includeNone = false, selected = '') {
+  const options = relationshipTypes.map(t => ({ value: t.id, label: t.name || '(unnamed)' }));
+  if (includeNone) options.unshift({ value: '', label: '— None —' });
+  if (selected && !options.some(option => option.value === selected)) options.unshift({ value: selected, label: '(current)' });
+  return options;
+}
 async function deleteHolon(holon) {
   const name = holon.name || '(unnamed)'; if (!confirm(`Delete “${name}”?`)) return; setStatus(`Deleting ${name}…`);
   try { await eBliss.holons.delete(holon.id); await loadModel(); setStatus(`Deleted ${name}`, 'success'); } catch (error) { setStatus(error.message || 'Unable to delete Holon', 'error'); }
 }
 async function createHolon() {
-  const name = prompt('Holon name:'); if (!name?.trim()) return;
-  const holonType = prompt('Holon type:', 'Holon'); if (!holonType?.trim()) return;
-  setStatus(`Creating ${name.trim()}…`);
-  try { await eBliss.holons.create({ name: name.trim(), holon_type: holonType.trim() }); await loadModel(); setStatus(`Created ${name.trim()}`, 'success'); } catch (error) { setStatus(error.message || 'Unable to create Holon', 'error'); }
+  const values = await showModal({
+    title: 'New Holon',
+    submitLabel: 'Create Holon',
+    fields: [
+      { name: 'name', label: 'Name', required: true, placeholder: 'Holon name' },
+      { name: 'holon_type', label: 'Type', type: 'select', options: holonTypeOptions('Holon'), value: 'Holon', required: true },
+      { name: 'relationship_type_id', label: 'Initial Relationship', type: 'select', options: relationshipTypeOptions(true), value: '' },
+      { name: 'parent_holon_id', label: 'Parent Holon', type: 'select', options: holonOptions(true), value: '' },
+      { name: 'position', label: 'Position', type: 'number', value: '0' },
+    ],
+  });
+  if (!values?.name?.trim()) return;
+  if ((values.relationship_type_id && !values.parent_holon_id) || (!values.relationship_type_id && values.parent_holon_id)) {
+    return setStatus('Choose both an initial relationship and a parent Holon, or leave both empty', 'warn');
+  }
+  const name = values.name.trim();
+  setStatus(`Creating ${name}…`);
+  try {
+    const holon = await eBliss.holons.create({ name, holon_type: values.holon_type.trim() });
+    if (values.relationship_type_id && values.parent_holon_id) {
+      await eBliss.relationships.create({ source_holon_id: holon.id, target_holon_id: values.parent_holon_id, relationship_type_id: values.relationship_type_id, position: Number(values.position) || 0 });
+    }
+    await loadModel();
+    setStatus(`Created ${name}`, 'success');
+  } catch (error) { setStatus(error.message || 'Unable to create Holon', 'error'); }
 }
 async function editHolon(holon) {
-  const name = prompt('Holon name:', holon.name || ''); if (name === null) return;
-  const holonType = prompt('Holon type:', holon.holon_type || 'Holon'); if (holonType === null) return;
+  const values = await showModal({
+    title: 'Edit Holon',
+    submitLabel: 'Save Changes',
+    fields: [
+      { name: 'name', label: 'Name', required: true, value: holon.name || '' },
+      { name: 'holon_type', label: 'Type', type: 'select', options: holonTypeOptions(holon.holon_type || 'Holon'), value: holon.holon_type || 'Holon', required: true },
+    ],
+  });
+  if (!values) return;
+  const name = values.name.trim();
+  const holonType = values.holon_type.trim();
+  if (!name || !holonType) return setStatus('Name and type are required', 'warn');
   setStatus('Updating Holon…');
-  try { await eBliss.holons.update(holon.id, { name: name.trim(), holon_type: holonType.trim() }); await loadModel(); setStatus('Holon updated', 'success'); } catch (error) { setStatus(error.message || 'Unable to update Holon', 'error'); }
+  try { await eBliss.holons.update(holon.id, { name, holon_type: holonType }); await loadModel(); setStatus('Holon updated', 'success'); } catch (error) { setStatus(error.message || 'Unable to update Holon', 'error'); }
 }
 async function saveHolonCell(row, field, newValue, oldValue) {
   if (!['name', 'holon_type'].includes(field) || newValue === oldValue) return;
@@ -66,15 +116,34 @@ async function deleteRelationship(relationship) {
 }
 async function createRelationship() {
   if (holons.length < 2 || !relationshipTypes.length) return setStatus('Need at least two holons and one relationship type', 'warn');
-  const source = prompt(`Source Holon ID:\n${holons.map(h => `${h.id} — ${h.name}`).join('\n')}`); if (!source) return;
-  const target = prompt(`Target Holon ID:\n${holons.map(h => `${h.id} — ${h.name}`).join('\n')}`); if (!target) return;
-  const type = prompt(`Relationship Type ID:\n${relationshipTypes.map(t => `${t.id} — ${t.name}`).join('\n')}`); if (!type) return;
+  const values = await showModal({
+    title: 'New Relationship',
+    submitLabel: 'Create Relationship',
+    fields: [
+      { name: 'source_holon_id', label: 'Source Holon', type: 'select', options: holonOptions(), required: true },
+      { name: 'relationship_type_id', label: 'Relationship', type: 'select', options: relationshipTypeOptions(), required: true },
+      { name: 'target_holon_id', label: 'Target Holon', type: 'select', options: holonOptions(), required: true },
+      { name: 'position', label: 'Position', type: 'number', value: '0' },
+    ],
+  });
+  if (!values) return;
   setStatus('Creating relationship…');
-  try { await eBliss.relationships.create({ source_holon_id: source, target_holon_id: target, relationship_type_id: type, position: 0 }); await loadModel(); setStatus('Relationship created', 'success'); } catch (error) { setStatus(error.message || 'Unable to create relationship', 'error'); }
+  try { await eBliss.relationships.create({ source_holon_id: values.source_holon_id, target_holon_id: values.target_holon_id, relationship_type_id: values.relationship_type_id, position: Number(values.position) || 0 }); await loadModel(); setStatus('Relationship created', 'success'); } catch (error) { setStatus(error.message || 'Unable to create relationship', 'error'); }
 }
 async function editRelationship(relationship) {
-  const position = prompt('Position:', relationship.position ?? 0); if (position === null) return; setStatus('Updating relationship…');
-  try { await eBliss.relationships.update(relationship.id, { position: Number(position) || 0 }); await loadModel(); setStatus('Relationship updated', 'success'); } catch (error) { setStatus(error.message || 'Unable to update relationship', 'error'); }
+  const values = await showModal({
+    title: 'Edit Relationship',
+    submitLabel: 'Save Changes',
+    fields: [
+      { name: 'source_holon_id', label: 'Source Holon', type: 'select', options: holonOptions(false, relationship.source_holon_id), value: relationship.source_holon_id, required: true },
+      { name: 'relationship_type_id', label: 'Relationship', type: 'select', options: relationshipTypeOptions(false, relationship.relationship_type_id), value: relationship.relationship_type_id, required: true },
+      { name: 'target_holon_id', label: 'Target Holon', type: 'select', options: holonOptions(false, relationship.target_holon_id), value: relationship.target_holon_id, required: true },
+      { name: 'position', label: 'Position', type: 'number', value: relationship.position ?? 0 },
+    ],
+  });
+  if (!values) return;
+  setStatus('Updating relationship…');
+  try { await eBliss.relationships.update(relationship.id, { source_holon_id: values.source_holon_id, relationship_type_id: values.relationship_type_id, target_holon_id: values.target_holon_id, position: Number(values.position) || 0 }); await loadModel(); setStatus('Relationship updated', 'success'); } catch (error) { setStatus(error.message || 'Unable to update relationship', 'error'); }
 }
 async function saveRelationshipCell(row, field, newValue, oldValue) {
   if (field !== 'position' || newValue === oldValue) return;
