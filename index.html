@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>eB Lists</title>
+    <link rel="icon" type="image/x-icon" href="./img/favicon">
+    <link rel="icon" type="image/png" sizes="48x48" href="./img/favicon48.png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="./vendor/vanillagrid.css">
     <link rel="stylesheet" href="./app.css">
@@ -35,18 +37,8 @@
 
                 <section id="auth" class="card">
                     <h2>Sign in</h2>
-                    <input
-                        id="email"
-                        type="email"
-                        placeholder="Email"
-                        autocomplete="email"
-                    >
-                    <input
-                        id="password"
-                        type="password"
-                        placeholder="Password"
-                        autocomplete="current-password"
-                    >
+                    <input id="email" type="email" placeholder="Email" autocomplete="email">
+                    <input id="password" type="password" placeholder="Password" autocomplete="current-password">
                     <div>
                         <button id="signIn" type="button">Sign in</button>
                         <button id="signUp" type="button">Create account</button>
@@ -63,10 +55,7 @@
                         <section class="panel">
                             <h3 id="activeList">Relationships</h3>
                             <div class="muted" id="listMode"></div>
-                            <div
-                                id="detailGrid"
-                                aria-label="Relationships"
-                            ></div>
+                            <div id="detailGrid" aria-label="Relationships"></div>
                         </section>
                     </div>
                 </section>
