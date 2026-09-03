@@ -35,7 +35,7 @@ export function initAuth({ supabase, elements, onSession })
     }
     else
     {
-      elements.setStatus('Account created. Check your email if confirmation is required.');
+      elements.setStatus('Account created. Check your email as confirmation is required.');
     }
   };
 
