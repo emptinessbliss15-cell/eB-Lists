@@ -175,19 +175,19 @@ button
 .eb-status-current[data-level="success"],
 .status-log-entry[data-level="success"]
 {
-    background: #d1e7dd;
+    background: #d1e7dd !important;
 }
 
 .eb-status-current[data-level="warn"],
 .status-log-entry[data-level="warn"]
 {
-    background: #fff3cd;
+    background: #fff3cd !important;
 }
 
 .eb-status-current[data-level="error"],
 .status-log-entry[data-level="error"]
 {
-    background: #f8d7da;
+    background: #f8d7da !important;
 }
 
 .eb-status-message
