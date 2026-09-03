@@ -14,6 +14,7 @@ const elements = {
   treeRoot: document.getElementById('treeRoot'), treeRelationship: document.getElementById('treeRelationship'), grid: document.getElementById('grid'),
   detailGrid: document.getElementById('detailGrid'), activeList: document.getElementById('activeList'), listMode: document.getElementById('listMode'),
   refresh: document.getElementById('refresh'), refreshApp: document.getElementById('refreshApp'), debugApp: document.getElementById('debugApp'),
+  newHolonType: document.getElementById('newHolonType'),
   testStatusSuccess: document.getElementById('testStatusSuccess'), testStatusWarn: document.getElementById('testStatusWarn'), testStatusError: document.getElementById('testStatusError'),
 };
 let holons = [], relationships = [], relationshipTypes = [], holonTypes = [];
@@ -56,6 +57,29 @@ function relationshipTypeOptions(includeNone = false, selected = '') {
 async function deleteHolon(holon) {
   const name = holon.name || '(unnamed)'; if (!confirm(`Delete “${name}”?`)) return; setStatus(`Deleting ${name}…`);
   try { await eBliss.holons.delete(holon.id); await loadModel(); setStatus(`Deleted ${name}`, 'success'); } catch (error) { setStatus(error.message || 'Unable to delete Holon', 'error'); }
+}
+async function createHolonType() {
+  const values = await showModal({
+    title: 'New Holon Type',
+    submitLabel: 'Create Type',
+    fields: [
+      { name: 'name', label: 'Name', required: true, placeholder: 'e.g. Service' },
+      { name: 'description', label: 'Description', placeholder: 'What kind of Holon is this?' },
+    ],
+  });
+  if (!values?.name?.trim()) return;
+
+  const name = values.name.trim();
+  const description = values.description?.trim() || '';
+  setStatus(`Creating Holon type ${name}…`);
+
+  try {
+    await eBliss.holonTypes.create({ name, description });
+    await loadModel();
+    setStatus(`Created Holon type ${name}`, 'success');
+  } catch (error) {
+    setStatus(error.message || 'Unable to create Holon type', 'error');
+  }
 }
 async function createHolon() {
   const type = defaultHolonType();
@@ -189,6 +213,7 @@ async function applySession(session) {
 }
 
 elements.treeRoot.addEventListener('change', createViews); elements.treeRelationship.addEventListener('change', createViews); elements.refresh.addEventListener('click', loadModel);
+elements.newHolonType.addEventListener('click', createHolonType);
 elements.refreshApp.addEventListener('click', () => location.reload()); elements.debugApp.addEventListener('click', () => { setStatus('Debugger paused', 'warn'); debugger; });
 elements.testStatusSuccess.addEventListener('click', () => setStatus('Test success message', 'success')); elements.testStatusWarn.addEventListener('click', () => setStatus('Test warning message', 'warn')); elements.testStatusError.addEventListener('click', () => setStatus('Test error message', 'error'));
 const authResult = initAuth({ api: eBliss, container: elements.auth, setStatus, onSession: applySession });
