@@ -31,16 +31,6 @@
             </nav>
 
             <main class="eb-main">
-                <section id="auth" class="card">
-                    <h2>Sign in</h2>
-                    <input id="email" type="email" placeholder="Email" autocomplete="email">
-                    <input id="password" type="password" placeholder="Password" autocomplete="current-password">
-                    <div>
-                        <button id="signIn" type="button">Sign in</button>
-                        <button id="signUp" type="button">Create account</button>
-                    </div>
-                </section>
-
                 <section id="app" class="card" hidden>
                     <div class="workspace-grid">
                         <section class="panel">
@@ -86,22 +76,6 @@
         });
 
         await import('./app.js');
-
-        const app = document.getElementById('app');
-        const headerAuth = document.getElementById('headerAuth');
-
-        const syncHeaderAuth = () =>
-        {
-            headerAuth.hidden = app.hidden;
-        };
-
-        new MutationObserver(syncHeaderAuth).observe(app,
-        {
-            attributes: true,
-            attributeFilter: ['hidden']
-        });
-
-        syncHeaderAuth();
     </script>
 </body>
 </html>
