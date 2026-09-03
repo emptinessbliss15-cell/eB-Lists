@@ -14,7 +14,7 @@ const elements = {
   treeRoot: document.getElementById('treeRoot'), treeRelationship: document.getElementById('treeRelationship'), grid: document.getElementById('grid'),
   detailGrid: document.getElementById('detailGrid'), activeList: document.getElementById('activeList'), listMode: document.getElementById('listMode'),
   refresh: document.getElementById('refresh'), refreshApp: document.getElementById('refreshApp'), debugApp: document.getElementById('debugApp'),
-  newHolonType: document.getElementById('newHolonType'),
+  newHolonType: document.getElementById('newHolonType'), testComboBox: document.getElementById('testComboBox'),
   testStatusSuccess: document.getElementById('testStatusSuccess'), testStatusWarn: document.getElementById('testStatusWarn'), testStatusError: document.getElementById('testStatusError'),
 };
 let holons = [], relationships = [], relationshipTypes = [], holonTypes = [];
@@ -80,6 +80,28 @@ async function createHolonType() {
   } catch (error) {
     setStatus(error.message || 'Unable to create Holon type', 'error');
   }
+}
+async function testComboBox() {
+  const values = await showModal({
+    title: 'Combo Box Test',
+    submitLabel: 'Test Selection',
+    fields: [
+      {
+        name: 'holons',
+        label: 'Holons — find or type new',
+        type: 'combobox',
+        options: holonOptions(),
+        multiple: true,
+        allowCustom: true,
+        placeholder: 'Type to find or enter a new Holon…',
+      },
+    ],
+  });
+
+  if (!values) return;
+  const selected = Array.isArray(values.holons) ? values.holons : [values.holons].filter(Boolean);
+  setStatus(`Combo box submitted ${selected.length} value${selected.length === 1 ? '' : 's'}: ${selected.join(', ') || '(none)'}`, 'success');
+  console.log('Combo box test submission:', selected);
 }
 async function createHolon() {
   const type = defaultHolonType();
@@ -214,6 +236,7 @@ async function applySession(session) {
 
 elements.treeRoot.addEventListener('change', createViews); elements.treeRelationship.addEventListener('change', createViews); elements.refresh.addEventListener('click', loadModel);
 elements.newHolonType.addEventListener('click', createHolonType);
+elements.testComboBox.addEventListener('click', testComboBox);
 elements.refreshApp.addEventListener('click', () => location.reload()); elements.debugApp.addEventListener('click', () => { setStatus('Debugger paused', 'warn'); debugger; });
 elements.testStatusSuccess.addEventListener('click', () => setStatus('Test success message', 'success')); elements.testStatusWarn.addEventListener('click', () => setStatus('Test warning message', 'warn')); elements.testStatusError.addEventListener('click', () => setStatus('Test error message', 'error'));
 const authResult = initAuth({ api: eBliss, container: elements.auth, setStatus, onSession: applySession });
