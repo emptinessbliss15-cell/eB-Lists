@@ -41,7 +41,7 @@ function showContextMenu(x, y, items)
   setTimeout(() => document.addEventListener('mousedown', close), 0);
 }
 
-export function createHolonGrid({ element, holons, onSelect, onContextMenu })
+export function createHolonGrid({ element, holons, onSelect, onContextMenu, onRowEdit })
 {
   const grid = new VanillaGrid(element, {
     data: holons,
@@ -55,8 +55,10 @@ export function createHolonGrid({ element, holons, onSelect, onContextMenu })
     pagination: true,
     pageSize: 25,
     selectable: true,
+    editableRows: true,
     contextMenu: true,
     onSelectionChange: rows => rows.length && onSelect?.(rows[rows.length - 1]),
+    onRowEdit,
   });
 
   element.addEventListener('contextmenu', event =>
@@ -70,7 +72,7 @@ export function createHolonGrid({ element, holons, onSelect, onContextMenu })
   return grid;
 }
 
-export function createRelationshipGrid({ element, relationships, onContextMenu })
+export function createRelationshipGrid({ element, relationships, onContextMenu, onRowEdit })
 {
   const grid = new VanillaGrid(element, {
     data: relationships,
@@ -84,7 +86,9 @@ export function createRelationshipGrid({ element, relationships, onContextMenu }
     sortable: true,
     pagination: true,
     pageSize: 25,
+    editableRows: true,
     contextMenu: true,
+    onRowEdit,
   });
 
   element.addEventListener('contextmenu', event =>
