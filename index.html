@@ -57,7 +57,7 @@
     <script src="./vendor/hcg-autocomplete.js"></script>
     <script type="module">
         const header = document.getElementById('header');
-        const response = await fetch('./header.html');
+        const response = await fetch(`./header.html?v=${Date.now()}`, { cache: 'no-store' });
 
         if (!response.ok)
         {
