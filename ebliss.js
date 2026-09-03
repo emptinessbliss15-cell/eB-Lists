@@ -1,6 +1,6 @@
-import { createSupabaseBackend } from './backends/supabase.js';
+import { createEBSupabase } from './eBsupabase.js';
 
-function createSDK(backend)
+export function createEBlissSDK(backend)
 {
   if (!backend)
   {
@@ -14,8 +14,8 @@ function createSDK(backend)
   });
 }
 
-// Current backend selection. Swap this factory to replace Supabase without
-// changing application code or the public eBliss SDK surface.
-const backend = createSupabaseBackend();
+// Current backend selection. Replace this one line when another backend
+// implements the eBliss backend contract.
+const backend = createEBSupabase();
 
-export const eBliss = createSDK(backend);
+export const eBliss = createEBlissSDK(backend);
