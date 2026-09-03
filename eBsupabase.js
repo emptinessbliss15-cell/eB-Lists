@@ -100,6 +100,22 @@ export function createEBSupabase()
       },
     },
 
+    holonTypes: {
+      async create(values)
+      {
+        const name = String(values?.name ?? '').trim();
+        if (!name) throw new Error('Holon type name is required');
+
+        const description = String(values?.description ?? '').trim();
+        const response = await supabase
+          .from('holon_types')
+          .insert({ name, description })
+          .select()
+          .single();
+        return result('Holon type', response);
+      },
+    },
+
     relationships: {
       async create(values)
       {
