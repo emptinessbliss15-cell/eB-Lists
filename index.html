@@ -10,24 +10,7 @@
 </head>
 <body>
     <div id="shell" class="eb-shell">
-        <header id="header" class="eb-header">
-            <div class="eb-header-inner">
-                <div class="eb-brand">eB Lists</div>
-                <div class="eb-app-name">Holon Workspace</div>
-                <div class="eb-header-spacer"></div>
-                <div
-                    class="cf-build-status"
-                    title="Cloudflare deployment status"
-                >
-                    <span class="cf-build-dot">●</span>
-                    <span>CF: deployed</span>
-                </div>
-                <div class="eb-row" id="headerAuth" hidden>
-                    <strong id="user"></strong>
-                    <button id="signOut" type="button">Sign out</button>
-                </div>
-            </div>
-        </header>
+        <div id="header"></div>
 
         <div class="eb-navigation">
             <nav class="eb-tree" aria-label="Holon tree">
@@ -93,8 +76,19 @@
     </div>
 
     <script src="./vendor/vanillagrid.js"></script>
-    <script type="module" src="./app.js"></script>
-    <script>
+    <script type="module">
+        const header = document.getElementById('header');
+        const response = await fetch('./header.html');
+
+        if (!response.ok)
+        {
+            throw new Error(`Unable to load header: ${response.status}`);
+        }
+
+        header.outerHTML = await response.text();
+
+        await import('./app.js');
+
         const app = document.getElementById('app');
         const headerAuth = document.getElementById('headerAuth');
 
