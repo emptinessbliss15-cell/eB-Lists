@@ -12,7 +12,7 @@ import {
 } from './grid.js';
 
 const supabase = window.supabase.createClient(
-  'https://zaabghrczrbqkxrhkin9.supabase.co',
+  'https://zaabghrczrbqkxrhkinj.supabase.co',
   'sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF'
 );
 
@@ -33,6 +33,11 @@ const elements = {
   signUp: document.getElementById('signUp'),
   signOut: document.getElementById('signOut'),
   refresh: document.getElementById('refresh'),
+  refreshApp: document.getElementById('refreshApp'),
+  debugApp: document.getElementById('debugApp'),
+  testStatusSuccess: document.getElementById('testStatusSuccess'),
+  testStatusWarn: document.getElementById('testStatusWarn'),
+  testStatusError: document.getElementById('testStatusError'),
 };
 
 let holons = [];
@@ -211,6 +216,27 @@ async function applySession(session)
 elements.treeRoot.addEventListener('change', createViews);
 elements.treeRelationship.addEventListener('change', createViews);
 elements.refresh.addEventListener('click', loadModel);
+elements.refreshApp.addEventListener('click', () =>
+{
+  location.reload();
+});
+elements.debugApp.addEventListener('click', () =>
+{
+  setStatus('Debugger paused', 'warn');
+  debugger;
+});
+elements.testStatusSuccess.addEventListener('click', () =>
+{
+  setStatus('Test success message', 'success');
+});
+elements.testStatusWarn.addEventListener('click', () =>
+{
+  setStatus('Test warning message', 'warn');
+});
+elements.testStatusError.addEventListener('click', () =>
+{
+  setStatus('Test error message', 'error');
+});
 
 const authResult = initAuth({
   supabase,
