@@ -18,17 +18,10 @@ function normalizeState(value)
 
   const state = String(value).toLowerCase().trim();
 
-  if (state === 'success' || state === 'ready' || state === 'live')
-    return 'deployed';
-
-  if (state === 'pending' || state === 'waiting')
-    return 'queued';
-
-  if (state === 'in_progress' || state === 'in-progress' || state === 'processing')
-    return 'building';
-
-  if (state === 'error' || state === 'failure' || state === 'failed')
-    return 'failed';
+  if (state === 'success' || state === 'ready' || state === 'live') return 'deployed';
+  if (state === 'pending' || state === 'waiting') return 'queued';
+  if (state === 'in_progress' || state === 'in-progress' || state === 'processing') return 'building';
+  if (state === 'error' || state === 'failure' || state === 'failed') return 'failed';
 
   return STATES[state] ? state : 'unknown';
 }
@@ -49,8 +42,19 @@ function build(container)
   text.className = 'cf-build-label';
 
   container.append(dot, text);
-
   return { container, dot, text };
+}
+
+function logStage(state)
+{
+  const ebStatus = window.ebStatus;
+  if (!ebStatus) return;
+
+  const message = `Cloudflare: ${state}`;
+
+  if (state === 'deployed') ebStatus.success(message);
+  else if (state === 'failed' || state === 'unknown') ebStatus.warn(message);
+  else ebStatus.info(message);
 }
 
 export function createCFStatus(container, options = {})
@@ -62,11 +66,11 @@ export function createCFStatus(container, options = {})
   let state = 'checking';
   let timer = null;
   let destroyed = false;
+  let lastLoggedState = null;
 
   function render()
   {
     const meta = STATES[state] || STATES.unknown;
-
     view.dot.textContent = meta.symbol;
     view.text.textContent = `CF: ${meta.label}`;
     view.container.dataset.status = state;
@@ -75,8 +79,17 @@ export function createCFStatus(container, options = {})
 
   function setState(nextState)
   {
-    state = normalizeState(nextState);
+    const next = normalizeState(nextState);
+    const changed = next !== state;
+    state = next;
     render();
+
+    if (changed && state !== lastLoggedState)
+    {
+      lastLoggedState = state;
+      logStage(state);
+    }
+
     return state;
   }
 
@@ -110,7 +123,6 @@ export function createCFStatus(container, options = {})
   function start()
   {
     refresh();
-
     if (config.pollInterval > 0)
       timer = window.setInterval(refresh, config.pollInterval);
   }
@@ -118,10 +130,7 @@ export function createCFStatus(container, options = {})
   function destroy()
   {
     destroyed = true;
-
-    if (timer !== null)
-      window.clearInterval(timer);
-
+    if (timer !== null) window.clearInterval(timer);
     timer = null;
   }
 
