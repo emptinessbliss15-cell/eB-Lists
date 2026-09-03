@@ -1,0 +1,102 @@
+let activeModal = null;
+
+function closeModal(result = null)
+{
+  if (!activeModal) return;
+  const { overlay, resolve } = activeModal;
+  activeModal = null;
+  overlay.remove();
+  resolve(result);
+}
+
+export function showModal({ title, fields = [], submitLabel = 'Save', cancelLabel = 'Cancel' })
+{
+  if (activeModal) closeModal(null);
+
+  return new Promise(resolve =>
+  {
+    const overlay = document.createElement('div');
+    overlay.className = 'eb-modal-overlay';
+
+    const dialog = document.createElement('form');
+    dialog.className = 'eb-modal';
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+
+    const header = document.createElement('div');
+    header.className = 'eb-modal-header';
+    header.innerHTML = `<h2></h2><button type="button" class="eb-modal-close" aria-label="Close">×</button>`;
+    header.querySelector('h2').textContent = title;
+
+    const body = document.createElement('div');
+    body.className = 'eb-modal-body';
+
+    const controls = new Map();
+    fields.forEach(field =>
+    {
+      const label = document.createElement('label');
+      label.className = 'eb-modal-field';
+
+      const caption = document.createElement('span');
+      caption.textContent = field.label;
+      label.appendChild(caption);
+
+      let control;
+      if (field.type === 'select')
+      {
+        control = document.createElement('select');
+        (field.options || []).forEach(option =>
+        {
+          const item = document.createElement('option');
+          item.value = option.value;
+          item.textContent = option.label;
+          if (option.value === field.value) item.selected = true;
+          control.appendChild(item);
+        });
+      }
+      else
+      {
+        control = document.createElement('input');
+        control.type = field.type || 'text';
+        control.value = field.value ?? '';
+      }
+
+      control.name = field.name;
+      control.required = !!field.required;
+      if (field.placeholder) control.placeholder = field.placeholder;
+      label.appendChild(control);
+      body.appendChild(label);
+      controls.set(field.name, control);
+    });
+
+    const footer = document.createElement('div');
+    footer.className = 'eb-modal-footer';
+    footer.innerHTML = `<button type="button" class="eb-modal-cancel"></button><button type="submit" class="eb-modal-submit"></button>`;
+    footer.querySelector('.eb-modal-cancel').textContent = cancelLabel;
+    footer.querySelector('.eb-modal-submit').textContent = submitLabel;
+
+    dialog.append(header, body, footer);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    activeModal = { overlay, resolve };
+
+    const cancel = () => closeModal(null);
+    header.querySelector('.eb-modal-close').addEventListener('click', cancel);
+    footer.querySelector('.eb-modal-cancel').addEventListener('click', cancel);
+    overlay.addEventListener('mousedown', event =>
+    {
+      if (event.target === overlay) cancel();
+    });
+
+    dialog.addEventListener('submit', event =>
+    {
+      event.preventDefault();
+      const values = Object.fromEntries([...controls].map(([name, control]) => [name, control.value]));
+      closeModal(values);
+    });
+
+    const first = dialog.querySelector('input, select');
+    first?.focus();
+  });
+}
