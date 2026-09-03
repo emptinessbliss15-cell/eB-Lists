@@ -19,6 +19,27 @@ export function createEBSupabase()
     return response.data;
   };
 
+  async function resolveHolonValues(values)
+  {
+    const normalized = { ...values };
+
+    if (normalized.holon_type !== undefined)
+    {
+      const typeName = String(normalized.holon_type).trim();
+      delete normalized.holon_type;
+
+      const response = await supabase
+        .from('holon_types')
+        .select('id')
+        .eq('name', typeName)
+        .single();
+      const type = result('Holon type', response);
+      normalized.holon_type_id = type.id;
+    }
+
+    return normalized;
+  }
+
   return {
     auth: {
       getSession() { return supabase.auth.getSession(); },
@@ -31,16 +52,18 @@ export function createEBSupabase()
     model: {
       async load()
       {
-        const [holons, relationships, relationshipTypes] = await Promise.all([
+        const [holons, relationships, relationshipTypes, holonTypes] = await Promise.all([
           supabase.from('holons_view').select('*').order('created_at'),
           supabase.from('relationships_view').select('*').order('position').order('created_at'),
           supabase.from('relationship_types').select('*').order('name'),
+          supabase.from('holon_types').select('*').order('name'),
         ]);
 
         return {
           holons: result('Holons', holons) || [],
           relationships: result('Relationships', relationships) || [],
           relationshipTypes: result('Relationship types', relationshipTypes) || [],
+          holonTypes: result('Holon types', holonTypes) || [],
         };
       },
     },
@@ -48,7 +71,8 @@ export function createEBSupabase()
     holons: {
       async create(values)
       {
-        const response = await supabase.from('holons').insert(values).select().single();
+        const normalized = await resolveHolonValues(values);
+        const response = await supabase.from('holons').insert(normalized).select().single();
         return result('Holon', response);
       },
 
@@ -60,7 +84,8 @@ export function createEBSupabase()
 
       async update(holonId, values)
       {
-        const response = await supabase.from('holons').update(values).eq('id', holonId).select().single();
+        const normalized = await resolveHolonValues(values);
+        const response = await supabase.from('holons').update(normalized).eq('id', holonId).select().single();
         return result('Holon', response);
       },
 
@@ -70,7 +95,7 @@ export function createEBSupabase()
           .or(`source_holon_id.eq.${holonId},target_holon_id.eq.${holonId}`);
         result('Relationships', relationshipResult);
 
-        const holonResult = await supabase.from('holons').delete().eq('id', holonId);
+        const holonResult = await supabase.from('holons').delete().eq('id', holonId).select('id').single();
         result('Holon', holonResult);
       },
     },
@@ -96,8 +121,8 @@ export function createEBSupabase()
 
       async delete(relationshipId)
       {
-        const response = await supabase.from('relationships').delete().eq('id', relationshipId);
-        result('Relationship', response);
+        const response = await supabase.from('relationships').delete().eq('id', relationshipId).select('id').single();
+        return result('Relationship', response);
       },
     },
   };
