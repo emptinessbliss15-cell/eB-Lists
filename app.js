@@ -4,6 +4,7 @@ console.log("app.js timestamp test");
 import { initAuth } from './auth.js';
 import { loadHolons } from './holons.js';
 import { createTree } from './tree.js';
+import { status } from './status.js';
 import {
   createHolonGrid,
   createRelationshipGrid,
@@ -16,7 +17,6 @@ const supabase = window.supabase.createClient(
 );
 
 const elements = {
-  status: document.getElementById('status'),
   app: document.getElementById('app'),
   auth: document.getElementById('auth'),
   email: document.getElementById('email'),
@@ -33,6 +33,7 @@ const elements = {
   signIn: document.getElementById('signIn'),
   signUp: document.getElementById('signUp'),
   signOut: document.getElementById('signOut'),
+  refresh: document.getElementById('refresh'),
 };
 
 let holons = [];
@@ -44,7 +45,13 @@ let relationshipGrid = null;
 
 function setStatus(text)
 {
-  elements.status.textContent = text || '';
+  if (!text)
+  {
+    status.clear();
+    return;
+  }
+
+  status.info(text);
 }
 
 function setSubheader(text)
@@ -164,7 +171,7 @@ function createViews()
 async function loadModel()
 {
   setStatus('Loading Holon model…');
-  
+
   try
   {
     const model = await loadHolons(supabase);
@@ -188,6 +195,7 @@ async function applySession(session)
   elements.auth.hidden = !!user;
   elements.app.hidden = !user;
   elements.user.textContent = user?.email || '';
+  elements.refresh.disabled = !user;
 
   if (user)
   {
@@ -210,6 +218,7 @@ async function applySession(session)
 
 elements.treeRoot.addEventListener('change', createViews);
 elements.treeRelationship.addEventListener('change', createViews);
+elements.refresh.addEventListener('click', loadModel);
 
 const authResult = initAuth({
   supabase,
