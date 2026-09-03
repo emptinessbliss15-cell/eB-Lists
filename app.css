@@ -47,9 +47,10 @@ button
 {
     min-height: 48px;
     padding: 6px 12px;
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
 }
 
 .eb-brand
@@ -61,25 +62,132 @@ button
 .eb-app-name
 {
     opacity: 0.65;
+    text-align: center;
 }
 
 .eb-header-spacer
 {
-    flex: 1;
+    display: none;
 }
 
 .eb-row
 {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 8px;
+}
+
+.eb-status
+{
+    min-height: 34px;
+    padding: 4px 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    border-bottom: 1px solid #ccc;
+}
+
+.eb-status-current
+{
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    padding: 3px 0;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.eb-status-message
+{
+    opacity: 0.75;
+}
+
+.cf-build-status
+{
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.cf-build-dot
+{
+    font-size: 11px;
+}
+
+.status-log-dialog
+{
+    width: min(700px, calc(100vw - 32px));
+    max-height: min(70vh, 600px);
+    padding: 0;
+    border: 1px solid #bbb;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.status-log-dialog::backdrop
+{
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.status-log-header
+{
+    position: sticky;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid #ddd;
+    background: #fff;
+}
+
+.status-log-header button
+{
+    border: 0;
+    background: transparent;
+    font-size: 20px;
+    line-height: 1;
+}
+
+.status-log
+{
+    max-height: calc(min(70vh, 600px) - 48px);
+    overflow: auto;
+}
+
+.status-log-entry
+{
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr);
+    gap: 10px;
+    padding: 7px 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.status-log-time
+{
+    font-size: 12px;
+    opacity: 0.6;
+}
+
+.status-log-message
+{
+    overflow-wrap: anywhere;
 }
 
 .eb-navigation
 {
     display: grid;
     grid-template-columns: 280px minmax(0, 1fr);
-    min-height: calc(100vh - 49px);
+    min-height: calc(100vh - 83px);
 }
 
 .eb-tree
@@ -192,20 +300,6 @@ button
     opacity: 0.7;
 }
 
-.cf-build-status
-{
-    font-size: 12px;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    white-space: nowrap;
-}
-
-.cf-build-dot
-{
-    font-size: 11px;
-}
-
 .holon-context-menu
 {
     position: fixed;
@@ -236,6 +330,27 @@ button
 
 @media (max-width: 760px)
 {
+    .eb-header-inner
+    {
+        grid-template-columns: 1fr;
+        justify-items: start;
+    }
+
+    .eb-app-name
+    {
+        text-align: left;
+    }
+
+    .eb-row
+    {
+        justify-content: flex-start;
+    }
+
+    .eb-status
+    {
+        grid-template-columns: 1fr;
+    }
+
     .eb-navigation
     {
         grid-template-columns: 1fr;
