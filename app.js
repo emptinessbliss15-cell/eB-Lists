@@ -28,7 +28,6 @@ const elements = {
   detailGrid: document.getElementById('detailGrid'),
   activeList: document.getElementById('activeList'),
   listMode: document.getElementById('listMode'),
-  subheader: document.getElementById('subheader'),
   user: document.getElementById('user'),
   signIn: document.getElementById('signIn'),
   signUp: document.getElementById('signUp'),
@@ -54,16 +53,10 @@ function setStatus(text)
   status.info(text);
 }
 
-function setSubheader(text)
-{
-  elements.subheader.textContent = text || '';
-}
-
 function openHolon(holon)
 {
   elements.activeList.textContent = holon.name || '(unnamed)';
   elements.listMode.textContent = holon.holon_type || 'Holon';
-  setSubheader(`${holon.holon_type || 'Holon'} · ${holon.name || '(unnamed)'}`);
 
   const related = relationships.filter(relationship =>
     relationship.source_holon_id === holon.id ||
@@ -212,8 +205,7 @@ async function applySession(session)
   treeGrid = null;
   holonGrid = null;
   relationshipGrid = null;
-  setSubheader('Sign in to open the Holon Workspace');
-  setStatus('');
+  setStatus('Sign in to open the Holon Workspace');
 }
 
 elements.treeRoot.addEventListener('change', createViews);
