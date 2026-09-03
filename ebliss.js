@@ -1,29 +1,21 @@
-import { createEBlissAPI } from './ebliss-api.js';
+import { createSupabaseBackend } from './backends/supabase.js';
 
-const SUPABASE_URL = 'https://zaabghrczrbqkxrhkinj.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF';
-
-function createSDK()
+function createSDK(backend)
 {
-  if (!window.supabase)
+  if (!backend)
   {
-    throw new Error('Supabase client library is not loaded');
+    throw new Error('eBliss backend is required');
   }
 
-  // Backend transport is intentionally private to the SDK.
-  // Application code should only use the eBliss SDK surface below.
-  const supabase = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY
-  );
-
-  const api = createEBlissAPI(supabase);
-
   return Object.freeze({
-    auth: api.auth,
-    model: api.model,
-    holons: api.holons,
+    auth: backend.auth,
+    model: backend.model,
+    holons: backend.holons,
   });
 }
 
-export const eBliss = createSDK();
+// Current backend selection. Swap this factory to replace Supabase without
+// changing application code or the public eBliss SDK surface.
+const backend = createSupabaseBackend();
+
+export const eBliss = createSDK(backend);
