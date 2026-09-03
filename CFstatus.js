@@ -80,11 +80,19 @@ export function createCFStatus(container, options = {})
   {
     if (previousState === nextState) return;
 
+    // Unknown is useful in the CFstatus display, but it is not
+    // meaningful enough to add noise to the application status log.
+    if (nextState === 'unknown')
+    {
+      previousState = nextState;
+      return;
+    }
+
     const message = `Cloudflare: ${STATES[nextState]?.label || nextState}`;
 
     if (nextState === 'deployed')
       eBStatus.success(message);
-    else if (nextState === 'failed' || nextState === 'unknown')
+    else if (nextState === 'failed')
       eBStatus.warn(message);
     else
       eBStatus.info(message);
