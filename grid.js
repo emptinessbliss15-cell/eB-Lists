@@ -41,6 +41,22 @@ function showContextMenu(x, y, items)
   setTimeout(() => document.addEventListener('mousedown', close), 0);
 }
 
+function bindInlineEditing(element, grid)
+{
+  element.addEventListener('dblclick', event =>
+  {
+    const cell = event.target.closest('td[data-column-key]');
+    if (!cell) return;
+
+    const row = cell.closest('tr[data-rowid]');
+    if (!row) return;
+
+    const rowId = Number(row.dataset.rowid);
+    const columnKey = cell.dataset.columnKey;
+    grid.startEdit?.(rowId, columnKey);
+  });
+}
+
 export function createHolonGrid({ element, holons, onSelect, onContextMenu, onRowEdit })
 {
   const grid = new VanillaGrid(element, {
@@ -60,6 +76,8 @@ export function createHolonGrid({ element, holons, onSelect, onContextMenu, onRo
     onSelectionChange: rows => rows.length && onSelect?.(rows[rows.length - 1]),
     onRowEdit,
   });
+
+  bindInlineEditing(element, grid);
 
   element.addEventListener('contextmenu', event =>
   {
@@ -90,6 +108,8 @@ export function createRelationshipGrid({ element, relationships, onContextMenu, 
     contextMenu: true,
     onRowEdit,
   });
+
+  bindInlineEditing(element, grid);
 
   element.addEventListener('contextmenu', event =>
   {
