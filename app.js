@@ -5,12 +5,14 @@ import { initAuth } from './auth.js';
 import { eBliss } from './eBSDK.js';
 import { loadHolons } from './holons.js';
 import { createTree } from './tree.js';
-import { status } from './status.js';
+import { eBStatus } from './eBStatus.js';
 import {
   createHolonGrid,
   createRelationshipGrid,
   setRelationships,
 } from './grid.js';
+
+const status = eBStatus;
 
 const elements = {
   app: document.getElementById('app'),
