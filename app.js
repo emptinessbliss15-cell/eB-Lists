@@ -48,6 +48,18 @@ async function editHolon(holon) {
   setStatus('Updating Holon…');
   try { await eBliss.holons.update(holon.id, { name: name.trim(), holon_type: holonType.trim() }); await loadModel(); setStatus('Holon updated', 'success'); } catch (error) { setStatus(error.message || 'Unable to update Holon', 'error'); }
 }
+async function saveHolonCell(row, field, newValue, oldValue) {
+  if (!['name', 'holon_type'].includes(field) || newValue === oldValue) return;
+  setStatus(`Updating ${field === 'name' ? 'name' : 'type'}…`);
+  try {
+    await eBliss.holons.update(row.id, { [field]: String(newValue ?? '').trim() });
+    await loadModel();
+    setStatus('Holon updated', 'success');
+  } catch (error) {
+    setStatus(error.message || 'Unable to update Holon', 'error');
+    await loadModel();
+  }
+}
 async function deleteRelationship(relationship) {
   if (!confirm('Delete this relationship?')) return; setStatus('Deleting relationship…');
   try { await eBliss.relationships.delete(relationship.id); await loadModel(); setStatus('Relationship deleted', 'success'); } catch (error) { setStatus(error.message || 'Unable to delete relationship', 'error'); }
@@ -64,14 +76,32 @@ async function editRelationship(relationship) {
   const position = prompt('Position:', relationship.position ?? 0); if (position === null) return; setStatus('Updating relationship…');
   try { await eBliss.relationships.update(relationship.id, { position: Number(position) || 0 }); await loadModel(); setStatus('Relationship updated', 'success'); } catch (error) { setStatus(error.message || 'Unable to update relationship', 'error'); }
 }
+async function saveRelationshipCell(row, field, newValue, oldValue) {
+  if (field !== 'position' || newValue === oldValue) return;
+  const position = Number(newValue);
+  if (!Number.isFinite(position)) {
+    setStatus('Position must be a number', 'error');
+    await loadModel();
+    return;
+  }
+  setStatus('Updating relationship…');
+  try {
+    await eBliss.relationships.update(row.id, { position });
+    await loadModel();
+    setStatus('Relationship updated', 'success');
+  } catch (error) {
+    setStatus(error.message || 'Unable to update relationship', 'error');
+    await loadModel();
+  }
+}
 function holonMenu(event, holon, show) { show([{ label: 'New Holon', action: createHolon }, { label: 'Edit', action: () => editHolon(holon) }, { label: 'Delete', action: () => deleteHolon(holon) }]); }
 function relationshipMenu(event, relationship, show) { show([{ label: 'New Relationship', action: createRelationship }, { label: 'Edit', action: () => editRelationship(relationship) }, { label: 'Delete', action: () => deleteRelationship(relationship) }]); }
 
 function createViews() {
   treeGrid?.destroy(); holonGrid?.destroy(); relationshipGrid?.destroy();
   treeGrid = createTree({ element: elements.tree, holons, relationships, rootId: elements.treeRoot.value, relationshipTypeId: elements.treeRelationship.value, onSelect: openHolon, onCreate: createHolon, onEdit: editHolon, onDelete: deleteHolon });
-  holonGrid = createHolonGrid({ element: elements.grid, holons, onSelect: openHolon, onContextMenu: holonMenu });
-  relationshipGrid = createRelationshipGrid({ element: elements.detailGrid, relationships, onContextMenu: relationshipMenu });
+  holonGrid = createHolonGrid({ element: elements.grid, holons, onSelect: openHolon, onContextMenu: holonMenu, onRowEdit: saveHolonCell });
+  relationshipGrid = createRelationshipGrid({ element: elements.detailGrid, relationships, onContextMenu: relationshipMenu, onRowEdit: saveRelationshipCell });
 }
 async function loadModel() {
   setStatus('Loading Holon model…');
