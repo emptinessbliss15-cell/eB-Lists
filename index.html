@@ -70,7 +70,7 @@
                     </div>
                 </section>
 
-                <p id="status" class="muted"></p>
+                <div id="status"></div>
             </main>
         </div>
     </div>
@@ -86,6 +86,12 @@
         }
 
         header.outerHTML = await response.text();
+
+        await import('./status.js').then(({ status }) =>
+        {
+            status.init();
+            window.ebStatus = status;
+        });
 
         await import('./app.js');
 
