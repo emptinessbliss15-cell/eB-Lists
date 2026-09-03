@@ -41,7 +41,11 @@ function renderCurrent()
     ? `${current.message}`
     : 'Ready';
 
-  currentElement.dataset.level = current?.level || 'info';
+  const statusButton = currentElement.parentElement;
+  if (statusButton)
+  {
+    statusButton.dataset.level = current?.level || 'info';
+  }
 }
 
 function renderLog()
