@@ -1,32 +1,7 @@
-export async function loadHolons(supabase)
+export async function loadHolons(api)
 {
   debugger;
-  const [holonResult, relationshipResult, typeResult] = await Promise.all([
-    supabase.from('holons_view').select('*').order('created_at'),
-    supabase.from('relationships_view').select('*').order('position').order('created_at'),
-    supabase.from('relationship_types').select('*').order('name'),
-  ]);
-
-  if (holonResult.error)
-  {
-    throw new Error(`Holons: ${holonResult.error.message}`);
-  }
-
-  if (relationshipResult.error)
-  {
-    throw new Error(`Relationships: ${relationshipResult.error.message}`);
-  }
-
-  if (typeResult.error)
-  {
-    throw new Error(`Relationship types: ${typeResult.error.message}`);
-  }
-
-  return {
-    holons: holonResult.data || [],
-    relationships: relationshipResult.data || [],
-    relationshipTypes: typeResult.data || [],
-  };
+  return api.model.load();
 }
 
 export function childrenOf(holonId, holons, relationships, relationshipTypeId = null)
