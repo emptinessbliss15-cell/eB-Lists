@@ -1,5 +1,3 @@
-debugger;
-
 console.log("=== NEW APP.JS LOADED ===");
 console.log("app.js timestamp test");
 
@@ -137,7 +135,6 @@ async function deleteHolon(holon)
 
 function createViews()
 {
-  debugger;
   treeGrid?.destroy();
   holonGrid?.destroy();
   relationshipGrid?.destroy();
@@ -167,8 +164,7 @@ function createViews()
 async function loadModel()
 {
   setStatus('Loading Holon model…');
-  debugger;
-
+  
   try
   {
     const model = await loadHolons(supabase);
