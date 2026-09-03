@@ -2,6 +2,7 @@ console.log("=== NEW APP.JS LOADED ===");
 console.log("app.js timestamp test");
 
 import { initAuth } from './auth.js';
+import { createEBlissAPI } from './ebliss-api.js';
 import { loadHolons } from './holons.js';
 import { createTree } from './tree.js';
 import { status } from './status.js';
@@ -15,6 +16,7 @@ const supabase = window.supabase.createClient(
   'https://zaabghrczrbqkxrhkinj.supabase.co',
   'sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF'
 );
+const api = createEBlissAPI(supabase);
 
 const elements = {
   app: document.getElementById('app'),
@@ -103,26 +105,7 @@ async function deleteHolon(holon)
 
   try
   {
-    const relationshipResult = await supabase
-      .from('relationships')
-      .delete()
-      .or(`source_holon_id.eq.${holon.id},target_holon_id.eq.${holon.id}`);
-
-    if (relationshipResult.error)
-    {
-      throw new Error(`Relationships: ${relationshipResult.error.message}`);
-    }
-
-    const holonResult = await supabase
-      .from('holons')
-      .delete()
-      .eq('id', holon.id);
-
-    if (holonResult.error)
-    {
-      throw new Error(`Holon: ${holonResult.error.message}`);
-    }
-
+    await api.holons.delete(holon.id);
     await loadModel();
     setStatus(`Deleted ${name}`, 'success');
   }
@@ -166,7 +149,7 @@ async function loadModel()
 
   try
   {
-    const model = await loadHolons(supabase);
+    const model = await loadHolons(api);
     holons = model.holons;
     relationships = model.relationships;
     relationshipTypes = model.relationshipTypes;
@@ -231,7 +214,7 @@ elements.testStatusError.addEventListener('click', () =>
 });
 
 const authResult = initAuth({
-  supabase,
+  api,
   container: elements.auth,
   setStatus,
   onSession: applySession,
