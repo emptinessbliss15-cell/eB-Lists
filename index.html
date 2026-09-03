@@ -71,6 +71,14 @@
 
         header.outerHTML = await response.text();
 
+        const logoMenu = document.querySelector('.eb-logo-menu');
+        document.addEventListener('click', event =>
+        {
+            if (!logoMenu?.open) return;
+            if (logoMenu.contains(event.target)) return;
+            logoMenu.removeAttribute('open');
+        });
+
         await import('./status.js').then(({ status }) =>
         {
             status.init();
