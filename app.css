@@ -48,7 +48,7 @@ button
     min-height: 48px;
     padding: 6px 12px;
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: auto auto 1fr auto;
     align-items: center;
     gap: 12px;
 }
@@ -78,6 +78,75 @@ button
     gap: 8px;
 }
 
+.eb-logo-menu
+{
+    position: relative;
+}
+
+.eb-logo-menu summary
+{
+    display: block;
+    list-style: none;
+    cursor: pointer;
+}
+
+.eb-logo-menu summary::-webkit-details-marker
+{
+    display: none;
+}
+
+.eb-logo
+{
+    display: block;
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+.eb-logo-menu-panel
+{
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 1000;
+    min-width: 180px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 7px;
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.eb-logo-menu-panel button
+{
+    display: block;
+    width: 100%;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    padding: 7px 10px;
+    text-align: left;
+}
+
+.eb-logo-menu-panel button:hover
+{
+    background: #e9e9e9;
+}
+
+.eb-menu-label
+{
+    display: block;
+    padding: 6px 10px 3px;
+    font-size: 12px;
+    opacity: 0.65;
+}
+
+.eb-menu-separator
+{
+    margin: 5px 0;
+    border-top: 1px solid #eee;
+}
+
 .eb-status
 {
     min-height: 34px;
@@ -95,11 +164,30 @@ button
     min-width: 0;
     border: 0;
     background: transparent;
-    padding: 3px 0;
+    padding: 3px 6px;
     text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    border-radius: 4px;
+}
+
+.eb-status-current[data-level="success"],
+.status-log-entry[data-level="success"]
+{
+    background: #d1e7dd !important;
+}
+
+.eb-status-current[data-level="warn"],
+.status-log-entry[data-level="warn"]
+{
+    background: #fff3cd !important;
+}
+
+.eb-status-current[data-level="error"],
+.status-log-entry[data-level="error"]
+{
+    background: #f8d7da !important;
 }
 
 .eb-status-message
@@ -332,17 +420,24 @@ button
 {
     .eb-header-inner
     {
-        grid-template-columns: 1fr;
+        grid-template-columns: auto 1fr;
         justify-items: start;
+    }
+
+    .eb-brand
+    {
+        grid-column: 2;
     }
 
     .eb-app-name
     {
+        grid-column: 2;
         text-align: left;
     }
 
     .eb-row
     {
+        grid-column: 2;
         justify-content: flex-start;
     }
 

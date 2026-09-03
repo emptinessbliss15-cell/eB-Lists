@@ -33,6 +33,11 @@ const elements = {
   signUp: document.getElementById('signUp'),
   signOut: document.getElementById('signOut'),
   refresh: document.getElementById('refresh'),
+  refreshApp: document.getElementById('refreshApp'),
+  debugApp: document.getElementById('debugApp'),
+  testStatusSuccess: document.getElementById('testStatusSuccess'),
+  testStatusWarn: document.getElementById('testStatusWarn'),
+  testStatusError: document.getElementById('testStatusError'),
 };
 
 let holons = [];
@@ -42,7 +47,7 @@ let treeGrid = null;
 let holonGrid = null;
 let relationshipGrid = null;
 
-function setStatus(text)
+function setStatus(text, level = 'info')
 {
   if (!text)
   {
@@ -50,7 +55,7 @@ function setStatus(text)
     return;
   }
 
-  status.info(text);
+  status[level](text);
 }
 
 function openHolon(holon)
@@ -125,11 +130,11 @@ async function deleteHolon(holon)
     }
 
     await loadModel();
-    setStatus(`Deleted ${name}`);
+    setStatus(`Deleted ${name}`, 'success');
   }
   catch (error)
   {
-    setStatus(error.message || 'Unable to delete Holon');
+    setStatus(error.message || 'Unable to delete Holon', 'error');
   }
 }
 
@@ -174,11 +179,11 @@ async function loadModel()
 
     populateTreeSelectors();
     createViews();
-    setStatus(`${holons.length} holons · ${relationships.length} relationships`);
+    setStatus(`${holons.length} holons · ${relationships.length} relationships`, 'success');
   }
   catch (error)
   {
-    setStatus(error.message || 'Unable to load Holon model');
+    setStatus(error.message || 'Unable to load Holon model', 'error');
   }
 }
 
@@ -211,6 +216,27 @@ async function applySession(session)
 elements.treeRoot.addEventListener('change', createViews);
 elements.treeRelationship.addEventListener('change', createViews);
 elements.refresh.addEventListener('click', loadModel);
+elements.refreshApp.addEventListener('click', () =>
+{
+  location.reload();
+});
+elements.debugApp.addEventListener('click', () =>
+{
+  setStatus('Debugger paused', 'warn');
+  debugger;
+});
+elements.testStatusSuccess.addEventListener('click', () =>
+{
+  setStatus('Test success message', 'success');
+});
+elements.testStatusWarn.addEventListener('click', () =>
+{
+  setStatus('Test warning message', 'warn');
+});
+elements.testStatusError.addEventListener('click', () =>
+{
+  setStatus('Test error message', 'error');
+});
 
 const authResult = initAuth({
   supabase,
@@ -229,7 +255,7 @@ authResult.then(({ data, error }) =>
 {
   if (error)
   {
-    setStatus(error.message);
+    setStatus(error.message, 'error');
     return;
   }
 
