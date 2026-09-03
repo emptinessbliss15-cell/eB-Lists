@@ -12,7 +12,7 @@ import {
 } from './grid.js';
 
 const supabase = window.supabase.createClient(
-  'https://zaabghrczrbqkxrhkinj.supabase.co',
+  'https://zaabghrczrbqkxrhkin9.supabase.co',
   'sb_publishable_QL6Bz9m30CV8HFIdkLQ42Q_N9AFIOkF'
 );
 
@@ -42,7 +42,7 @@ let treeGrid = null;
 let holonGrid = null;
 let relationshipGrid = null;
 
-function setStatus(text)
+function setStatus(text, level = 'info')
 {
   if (!text)
   {
@@ -50,7 +50,7 @@ function setStatus(text)
     return;
   }
 
-  status.info(text);
+  status[level](text);
 }
 
 function openHolon(holon)
@@ -125,11 +125,11 @@ async function deleteHolon(holon)
     }
 
     await loadModel();
-    setStatus(`Deleted ${name}`);
+    setStatus(`Deleted ${name}`, 'success');
   }
   catch (error)
   {
-    setStatus(error.message || 'Unable to delete Holon');
+    setStatus(error.message || 'Unable to delete Holon', 'error');
   }
 }
 
@@ -174,11 +174,11 @@ async function loadModel()
 
     populateTreeSelectors();
     createViews();
-    setStatus(`${holons.length} holons · ${relationships.length} relationships`);
+    setStatus(`${holons.length} holons · ${relationships.length} relationships`, 'success');
   }
   catch (error)
   {
-    setStatus(error.message || 'Unable to load Holon model');
+    setStatus(error.message || 'Unable to load Holon model', 'error');
   }
 }
 
@@ -229,7 +229,7 @@ authResult.then(({ data, error }) =>
 {
   if (error)
   {
-    setStatus(error.message);
+    setStatus(error.message, 'error');
     return;
   }
 
