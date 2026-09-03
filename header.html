@@ -2,17 +2,12 @@
     <div class="eb-header-inner">
         <div class="eb-brand">eB Lists</div>
         <div class="eb-app-name">Holon Workspace</div>
-        <div class="eb-header-spacer"></div>
-        <div
-            class="cf-build-status"
-            title="Cloudflare deployment status"
-        >
-            <span class="cf-build-dot">●</span>
-            <span>CF: deployed</span>
-        </div>
-        <div class="eb-row" id="headerAuth" hidden>
-            <strong id="user"></strong>
-            <button id="signOut" type="button">Sign out</button>
+        <div class="eb-row">
+            <button id="refresh" type="button">Refresh</button>
+            <div class="eb-row" id="headerAuth" hidden>
+                <strong id="user"></strong>
+                <button id="signOut" type="button">Sign out</button>
+            </div>
         </div>
     </div>
 </header>
