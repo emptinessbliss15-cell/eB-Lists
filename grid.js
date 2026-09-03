@@ -73,6 +73,13 @@ export function createHolonGrid({ element, holons, onSelect, onContextMenu, onRo
     selectable: true,
     editableRows: true,
     contextMenu: true,
+    columnsMenu: {
+      location: 'toolbar',
+      label: 'Columns',
+      showSearch: true,
+      showSelectAll: true,
+      initialHidden: ['id'],
+    },
     onSelectionChange: rows => rows.length && onSelect?.(rows[rows.length - 1]),
     onRowEdit,
   });
