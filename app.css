@@ -48,7 +48,7 @@ button
     min-height: 48px;
     padding: 6px 12px;
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: auto auto 1fr auto;
     align-items: center;
     gap: 12px;
 }
@@ -107,7 +107,7 @@ button
 {
     position: absolute;
     top: calc(100% + 6px);
-    right: 0;
+    left: 0;
     z-index: 1000;
     min-width: 180px;
     padding: 5px;
@@ -172,17 +172,20 @@ button
     border-radius: 4px;
 }
 
-.eb-status-current[data-level="success"]
+.eb-status-current[data-level="success"],
+.status-log-entry[data-level="success"]
 {
     background: #d1e7dd;
 }
 
-.eb-status-current[data-level="warn"]
+.eb-status-current[data-level="warn"],
+.status-log-entry[data-level="warn"]
 {
     background: #fff3cd;
 }
 
-.eb-status-current[data-level="error"]
+.eb-status-current[data-level="error"],
+.status-log-entry[data-level="error"]
 {
     background: #f8d7da;
 }
@@ -255,21 +258,6 @@ button
     gap: 10px;
     padding: 7px 12px;
     border-bottom: 1px solid #eee;
-}
-
-.status-log-entry[data-level="success"]
-{
-    background: #d1e7dd;
-}
-
-.status-log-entry[data-level="warn"]
-{
-    background: #fff3cd;
-}
-
-.status-log-entry[data-level="error"]
-{
-    background: #f8d7da;
 }
 
 .status-log-time
@@ -432,17 +420,24 @@ button
 {
     .eb-header-inner
     {
-        grid-template-columns: 1fr;
+        grid-template-columns: auto 1fr;
         justify-items: start;
+    }
+
+    .eb-brand
+    {
+        grid-column: 2;
     }
 
     .eb-app-name
     {
+        grid-column: 2;
         text-align: left;
     }
 
     .eb-row
     {
+        grid-column: 2;
         justify-content: flex-start;
     }
 
