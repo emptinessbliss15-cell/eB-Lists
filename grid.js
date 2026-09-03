@@ -1,6 +1,49 @@
-export function createHolonGrid({ element, holons, onSelect })
+function rowFromEvent(event, grid)
 {
-  return new VanillaGrid(element, {
+  const row = event.target.closest('tr[data-rowid]');
+  if (!row) return null;
+  return grid.rowById?.get(Number(row.dataset.rowid)) || null;
+}
+
+function showContextMenu(x, y, items)
+{
+  document.querySelector('.eb-context-menu')?.remove();
+
+  const menu = document.createElement('div');
+  menu.className = 'eb-context-menu';
+  menu.style.left = `${x}px`;
+  menu.style.top = `${y}px`;
+
+  items.forEach(item =>
+  {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = item.label;
+    button.disabled = !!item.disabled;
+    button.addEventListener('click', async () =>
+    {
+      menu.remove();
+      await item.action?.();
+    });
+    menu.appendChild(button);
+  });
+
+  document.body.appendChild(menu);
+
+  const close = event =>
+  {
+    if (!menu.contains(event.target))
+    {
+      menu.remove();
+      document.removeEventListener('mousedown', close);
+    }
+  };
+  setTimeout(() => document.addEventListener('mousedown', close), 0);
+}
+
+export function createHolonGrid({ element, holons, onSelect, onContextMenu })
+{
+  const grid = new VanillaGrid(element, {
     data: holons,
     columns: [
       { key: 'name', label: 'Name', sortable: true },
@@ -13,19 +56,23 @@ export function createHolonGrid({ element, holons, onSelect })
     pageSize: 25,
     selectable: true,
     contextMenu: true,
-    onSelectionChange: rows =>
-    {
-      if (rows.length)
-      {
-        onSelect(rows[rows.length - 1]);
-      }
-    },
+    onSelectionChange: rows => rows.length && onSelect?.(rows[rows.length - 1]),
   });
+
+  element.addEventListener('contextmenu', event =>
+  {
+    const row = rowFromEvent(event, grid);
+    if (!row) return;
+    event.preventDefault();
+    onContextMenu?.(event, row, (items) => showContextMenu(event.clientX, event.clientY, items));
+  });
+
+  return grid;
 }
 
-export function createRelationshipGrid({ element, relationships })
+export function createRelationshipGrid({ element, relationships, onContextMenu })
 {
-  return new VanillaGrid(element, {
+  const grid = new VanillaGrid(element, {
     data: relationships,
     columns: [
       { key: 'source_holon', label: 'Source', sortable: true },
@@ -39,6 +86,16 @@ export function createRelationshipGrid({ element, relationships })
     pageSize: 25,
     contextMenu: true,
   });
+
+  element.addEventListener('contextmenu', event =>
+  {
+    const row = rowFromEvent(event, grid);
+    if (!row) return;
+    event.preventDefault();
+    onContextMenu?.(event, row, (items) => showContextMenu(event.clientX, event.clientY, items));
+  });
+
+  return grid;
 }
 
 export function setRelationships(grid, relationships)
