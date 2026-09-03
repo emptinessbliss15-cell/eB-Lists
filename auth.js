@@ -22,6 +22,10 @@ function buildAuth(container, { api, onSession, setStatus })
   const user = document.createElement('strong');
   user.className = 'eb-auth-user';
 
+  const userId = document.createElement('code');
+  userId.className = 'eb-auth-user-id';
+  userId.title = 'Login UUID';
+
   const email = document.createElement('input');
   email.type = 'email';
   email.placeholder = 'Email';
@@ -44,7 +48,7 @@ function buildAuth(container, { api, onSession, setStatus })
   signOut.type = 'button';
   signOut.textContent = 'Sign out';
 
-  panel.append(user, email, password, signIn, signUp, signOut);
+  panel.append(user, userId, email, password, signIn, signUp, signOut);
   details.append(summary, panel);
   container.appendChild(details);
 
@@ -107,6 +111,8 @@ function buildAuth(container, { api, onSession, setStatus })
     const currentUser = session?.user || null;
     container.dataset.loggedIn = currentUser ? 'true' : 'false';
     user.textContent = currentUser?.email || 'Not signed in';
+    userId.textContent = currentUser ? `UUID: ${currentUser.id}` : '';
+    userId.hidden = !currentUser;
     email.hidden = !!currentUser;
     password.hidden = !!currentUser;
     signIn.hidden = !!currentUser;
