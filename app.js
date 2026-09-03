@@ -19,8 +19,6 @@ const supabase = window.supabase.createClient(
 const elements = {
   app: document.getElementById('app'),
   auth: document.getElementById('auth'),
-  email: document.getElementById('email'),
-  password: document.getElementById('password'),
   tree: document.getElementById('treeGrid'),
   treeRoot: document.getElementById('treeRoot'),
   treeRelationship: document.getElementById('treeRelationship'),
@@ -28,10 +26,6 @@ const elements = {
   detailGrid: document.getElementById('detailGrid'),
   activeList: document.getElementById('activeList'),
   listMode: document.getElementById('listMode'),
-  user: document.getElementById('user'),
-  signIn: document.getElementById('signIn'),
-  signUp: document.getElementById('signUp'),
-  signOut: document.getElementById('signOut'),
   refresh: document.getElementById('refresh'),
   refreshApp: document.getElementById('refreshApp'),
   debugApp: document.getElementById('debugApp'),
@@ -190,9 +184,7 @@ async function loadModel()
 async function applySession(session)
 {
   const user = session?.user || null;
-  elements.auth.hidden = !!user;
   elements.app.hidden = !user;
-  elements.user.textContent = user?.email || '';
   elements.refresh.disabled = !user;
 
   if (user)
@@ -240,14 +232,8 @@ elements.testStatusError.addEventListener('click', () =>
 
 const authResult = initAuth({
   supabase,
-  elements: {
-    signIn: elements.signIn,
-    signUp: elements.signUp,
-    signOut: elements.signOut,
-    email: elements.email,
-    password: elements.password,
-    setStatus,
-  },
+  container: elements.auth,
+  setStatus,
   onSession: applySession,
 });
 
