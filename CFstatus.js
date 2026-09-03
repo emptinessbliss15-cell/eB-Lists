@@ -1,3 +1,5 @@
+import { eBStatus } from './eBStatus.js';
+
 const DEFAULTS = {
   endpoint: '/api/cf-status',
   pollInterval: 15000,
@@ -18,10 +20,17 @@ function normalizeState(value)
 
   const state = String(value).toLowerCase().trim();
 
-  if (state === 'success' || state === 'ready' || state === 'live') return 'deployed';
-  if (state === 'pending' || state === 'waiting') return 'queued';
-  if (state === 'in_progress' || state === 'in-progress' || state === 'processing') return 'building';
-  if (state === 'error' || state === 'failure' || state === 'failed') return 'failed';
+  if (state === 'success' || state === 'ready' || state === 'live')
+    return 'deployed';
+
+  if (state === 'pending' || state === 'waiting')
+    return 'queued';
+
+  if (state === 'in_progress' || state === 'in-progress' || state === 'processing')
+    return 'building';
+
+  if (state === 'error' || state === 'failure' || state === 'failed')
+    return 'failed';
 
   return STATES[state] ? state : 'unknown';
 }
@@ -42,19 +51,8 @@ function build(container)
   text.className = 'cf-build-label';
 
   container.append(dot, text);
+
   return { container, dot, text };
-}
-
-function logStage(state)
-{
-  const ebStatus = window.ebStatus;
-  if (!ebStatus) return;
-
-  const message = `Cloudflare: ${state}`;
-
-  if (state === 'deployed') ebStatus.success(message);
-  else if (state === 'failed' || state === 'unknown') ebStatus.warn(message);
-  else ebStatus.info(message);
 }
 
 export function createCFStatus(container, options = {})
@@ -64,32 +62,42 @@ export function createCFStatus(container, options = {})
   const config = { ...DEFAULTS, ...options };
   const view = build(container);
   let state = 'checking';
+  let previousState = null;
   let timer = null;
   let destroyed = false;
-  let lastLoggedState = null;
 
   function render()
   {
     const meta = STATES[state] || STATES.unknown;
+
     view.dot.textContent = meta.symbol;
     view.text.textContent = `CF: ${meta.label}`;
     view.container.dataset.status = state;
     view.container.title = `Cloudflare deployment status: ${meta.label}`;
   }
 
+  function logStateChange(nextState)
+  {
+    if (previousState === nextState) return;
+
+    const message = `Cloudflare: ${STATES[nextState]?.label || nextState}`;
+
+    if (nextState === 'deployed')
+      eBStatus.success(message);
+    else if (nextState === 'failed' || nextState === 'unknown')
+      eBStatus.warn(message);
+    else
+      eBStatus.info(message);
+
+    previousState = nextState;
+  }
+
   function setState(nextState)
   {
-    const next = normalizeState(nextState);
-    const changed = next !== state;
-    state = next;
+    const normalized = normalizeState(nextState);
+    state = normalized;
     render();
-
-    if (changed && state !== lastLoggedState)
-    {
-      lastLoggedState = state;
-      logStage(state);
-    }
-
+    logStateChange(normalized);
     return state;
   }
 
@@ -123,6 +131,7 @@ export function createCFStatus(container, options = {})
   function start()
   {
     refresh();
+
     if (config.pollInterval > 0)
       timer = window.setInterval(refresh, config.pollInterval);
   }
@@ -130,7 +139,10 @@ export function createCFStatus(container, options = {})
   function destroy()
   {
     destroyed = true;
-    if (timer !== null) window.clearInterval(timer);
+
+    if (timer !== null)
+      window.clearInterval(timer);
+
     timer = null;
   }
 
