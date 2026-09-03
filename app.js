@@ -2,7 +2,7 @@ console.log("=== NEW APP.JS LOADED ===");
 console.log("app.js timestamp test");
 
 import { initAuth } from './auth.js';
-import { eBliss } from './ebliss.js';
+import { eBliss } from './eBSDK.js';
 import { loadHolons } from './holons.js';
 import { createTree } from './tree.js';
 import { status } from './status.js';
