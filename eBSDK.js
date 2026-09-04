@@ -8,6 +8,7 @@ export function createEBlissSDK(backend)
     auth: backend.auth,
     model: backend.model,
     holons: backend.holons,
+    holonTypes: backend.holonTypes,
     relationships: backend.relationships,
   });
 }
