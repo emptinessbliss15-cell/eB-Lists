@@ -8,19 +8,20 @@ import { eBliss } from './eBSDK.js';
 import { loadHolons } from './holons.js';
 import { createTree } from './tree.js';
 import { eBStatus } from './eBStatus.js';
-import { createHolonGraph, updateHolonGraph, destroyHolonGraph } from './holonGraph.js';
+import { createHolonGraph, updateHolonGraph, destroyHolonGraph, setGraphRoot } from './holonGraph.js';
+import { createEBComboBox, holonComboOptions } from './eBComboBox.js';
 import { showModal } from './eBModal.js';
 
 const status = eBStatus;
 const elements = {
   app: document.getElementById('app'), auth: document.getElementById('auth'), tree: document.getElementById('treeGrid'),
-  treeRoot: document.getElementById('treeRoot'), treeRelationship: document.getElementById('treeRelationship'), graph: document.getElementById('holonGraph'),
+  treeRoot: document.getElementById('treeRoot'), treeRelationship: document.getElementById('treeRelationship'), graph: document.getElementById('holonGraph'), graphRoot: document.getElementById('graphRoot'),
   refresh: document.getElementById('refresh'), refreshApp: document.getElementById('refreshApp'), debugApp: document.getElementById('debugApp'),
   newHolon: document.getElementById('newHolon'), newRelationship: document.getElementById('newRelationship'), newHolonType: document.getElementById('newHolonType'), testComboBox: document.getElementById('testComboBox'),
   testStatusSuccess: document.getElementById('testStatusSuccess'), testStatusWarn: document.getElementById('testStatusWarn'), testStatusError: document.getElementById('testStatusError'),
 };
 let holons = [], relationships = [], relationshipTypes = [], holonTypes = [];
-let treeGrid = null, graph = null;
+let treeGrid = null, graph = null, graphRootCombo = null;
 
 function setStatus(text, level = 'info') { if (!text) return status.clear(); status[level](text); }
 
@@ -37,6 +38,25 @@ function populateTreeSelectors() {
   const relationship = relationshipTypes.find(t => t.name?.toLowerCase() === 'branch of');
   if (root) elements.treeRoot.value = root.id;
   if (relationship) elements.treeRelationship.value = relationship.id;
+}
+
+function refreshGraphRootCombo() {
+  if (!elements.graphRoot) return;
+  graphRootCombo?.destroy?.();
+  graphRootCombo = createEBComboBox(elements.graphRoot, {
+    source: holonComboOptions(holons),
+    minChars: 0,
+    clearable: true,
+    placeholder: 'Choose a root Holon…',
+    onChange: value => {
+      const rootId = Array.isArray(value) ? value[0] : value;
+      setGraphRoot(rootId || null);
+    },
+    onSelect: value => {
+      const rootId = typeof value === 'object' ? value?.value : value;
+      if (rootId) setGraphRoot(rootId);
+    },
+  });
 }
 
 function holonTypeOptions(selected = '') {
@@ -74,13 +94,10 @@ async function deleteHolon(holon) {
 }
 
 async function createHolonType() {
-  const values = await showModal({
-    title: 'New Holon Type', submitLabel: 'Create Type',
-    fields: [
-      { name: 'name', label: 'Name', required: true, placeholder: 'e.g. Service' },
-      { name: 'description', label: 'Description', placeholder: 'What kind of Holon is this?' },
-    ],
-  });
+  const values = await showModal({ title: 'New Holon Type', submitLabel: 'Create Type', fields: [
+    { name: 'name', label: 'Name', required: true, placeholder: 'e.g. Service' },
+    { name: 'description', label: 'Description', placeholder: 'What kind of Holon is this?' },
+  ] });
   if (!values?.name?.trim()) return;
   const name = values.name.trim();
   const description = values.description?.trim() || '';
@@ -92,30 +109,22 @@ async function createHolonType() {
 async function createHolon(prefillName = '', prefillType = '') {
   const type = prefillType || defaultHolonType();
   if (!type) { setStatus('No Holon types are available', 'error'); return null; }
-
-  const values = await showModal({
-    title: 'New Holon', submitLabel: 'Create Holon',
-    fields: [
-      { name: 'name', label: 'Name', required: true, placeholder: 'Holon name', value: prefillName },
-      { name: 'holon_type', label: 'Type', type: 'combobox', options: holonTypeOptions(type), value: type, required: true, minChars: 0, allowCustom: false, placeholder: 'Find a Holon type…' },
-      { name: 'relationship_type_id', label: 'Initial Relationship', type: 'select', options: relationshipTypeOptions(true), value: '' },
-      { name: 'parent_holon_id', label: 'Parent Holon', type: 'select', options: holonOptions(true), value: '' },
-      { name: 'position', label: 'Position', type: 'number', value: '0' },
-    ],
-  });
+  const values = await showModal({ title: 'New Holon', submitLabel: 'Create Holon', fields: [
+    { name: 'name', label: 'Name', required: true, placeholder: 'Holon name', value: prefillName },
+    { name: 'holon_type', label: 'Type', type: 'combobox', options: holonTypeOptions(type), value: type, required: true, minChars: 0, allowCustom: false, placeholder: 'Find a Holon type…' },
+    { name: 'relationship_type_id', label: 'Initial Relationship', type: 'select', options: relationshipTypeOptions(true), value: '' },
+    { name: 'parent_holon_id', label: 'Parent Holon', type: 'select', options: holonOptions(true), value: '' },
+    { name: 'position', label: 'Position', type: 'number', value: '0' },
+  ] });
   if (!values?.name?.trim()) return null;
   if ((values.relationship_type_id && !values.parent_holon_id) || (!values.relationship_type_id && values.parent_holon_id)) {
-    setStatus('Choose both an initial relationship and a parent Holon, or leave both empty', 'warn');
-    return null;
+    setStatus('Choose both an initial relationship and a parent Holon, or leave both empty', 'warn'); return null;
   }
-
   const name = values.name.trim();
   setStatus(`Creating ${name}…`);
   try {
     const holon = await eBliss.holons.create({ name, holon_type: values.holon_type });
-    if (values.relationship_type_id && values.parent_holon_id) {
-      await eBliss.relationships.create({ source_holon_id: holon.id, target_holon_id: values.parent_holon_id, relationship_type_id: values.relationship_type_id, position: Number(values.position) || 0 });
-    }
+    if (values.relationship_type_id && values.parent_holon_id) await eBliss.relationships.create({ source_holon_id: holon.id, target_holon_id: values.parent_holon_id, relationship_type_id: values.relationship_type_id, position: Number(values.position) || 0 });
     await loadModel();
     openHolon(holon);
     setStatus(`Created ${name}`, 'success');
@@ -125,16 +134,12 @@ async function createHolon(prefillName = '', prefillType = '') {
 
 async function editHolon(holon) {
   const currentType = holon.holon_type || defaultHolonType();
-  const values = await showModal({
-    title: 'Edit Holon', submitLabel: 'Save Changes',
-    fields: [
-      { name: 'name', label: 'Name', required: true, value: holon.name || '' },
-      { name: 'holon_type', label: 'Type', type: 'combobox', options: holonTypeOptions(currentType), value: currentType, required: true, minChars: 0, allowCustom: false },
-    ],
-  });
+  const values = await showModal({ title: 'Edit Holon', submitLabel: 'Save Changes', fields: [
+    { name: 'name', label: 'Name', required: true, value: holon.name || '' },
+    { name: 'holon_type', label: 'Type', type: 'combobox', options: holonTypeOptions(currentType), value: currentType, required: true, minChars: 0, allowCustom: false },
+  ] });
   if (!values) return;
-  const name = values.name.trim();
-  const holonType = values.holon_type.trim();
+  const name = values.name.trim(), holonType = values.holon_type.trim();
   if (!name || !holonType) return setStatus('Name and type are required', 'warn');
   setStatus('Updating Holon…');
   try { await eBliss.holons.update(holon.id, { name, holon_type: holonType }); await loadModel(); openHolon(holons.find(h => h.id === holon.id) || { ...holon, name, holon_type: holonType }); setStatus('Holon updated', 'success'); }
@@ -150,15 +155,12 @@ async function deleteRelationship(relationship) {
 
 async function createRelationship() {
   if (holons.length < 2 || !relationshipTypes.length) return setStatus('Need at least two Holons and one relationship type', 'warn');
-  const values = await showModal({
-    title: 'New Relationship', submitLabel: 'Create Relationship',
-    fields: [
-      { name: 'source_holon_id', label: 'Source Holon', type: 'select', options: holonOptions(), required: true },
-      { name: 'relationship_type_id', label: 'Relationship', type: 'select', options: relationshipTypeOptions(), required: true },
-      { name: 'target_holon_id', label: 'Target Holon', type: 'select', options: holonOptions(), required: true },
-      { name: 'position', label: 'Position', type: 'number', value: '0' },
-    ],
-  });
+  const values = await showModal({ title: 'New Relationship', submitLabel: 'Create Relationship', fields: [
+    { name: 'source_holon_id', label: 'Source Holon', type: 'select', options: holonOptions(), required: true },
+    { name: 'relationship_type_id', label: 'Relationship', type: 'select', options: relationshipTypeOptions(), required: true },
+    { name: 'target_holon_id', label: 'Target Holon', type: 'select', options: holonOptions(), required: true },
+    { name: 'position', label: 'Position', type: 'number', value: '0' },
+  ] });
   if (!values) return;
   setStatus('Creating relationship…');
   try { await eBliss.relationships.create({ source_holon_id: values.source_holon_id, relationship_type_id: values.relationship_type_id, target_holon_id: values.target_holon_id, position: Number(values.position) || 0 }); await loadModel(); setStatus('Relationship created', 'success'); }
@@ -166,18 +168,13 @@ async function createRelationship() {
 }
 
 function holonMenu(event, holon, show) {
-  show([
-    { label: 'New Holon', action: createHolon },
-    { label: 'Edit', action: () => editHolon(holon) },
-    { label: 'Delete', action: () => deleteHolon(holon) },
-  ]);
+  show([{ label: 'New Holon', action: createHolon }, { label: 'Edit', action: () => editHolon(holon) }, { label: 'Delete', action: () => deleteHolon(holon) }]);
 }
 
 function createViews() {
   treeGrid?.destroy();
   treeGrid = createTree({ element: elements.tree, holons, relationships, rootId: elements.treeRoot.value, relationshipTypeId: elements.treeRelationship.value, onSelect: openHolon, onCreate: createHolon, onEdit: editHolon, onDelete: deleteHolon });
-
-  if (!graph) graph = createHolonGraph({ element: elements.graph, holons, relationships, relationshipTypes });
+  if (!graph) graph = createHolonGraph({ element: elements.graph, holons, relationships, relationshipTypes, rootId: null });
   else updateHolonGraph({ holons, relationships, relationshipTypes });
 }
 
@@ -188,6 +185,7 @@ async function loadModel() {
     holons = model.holons; relationships = model.relationships; relationshipTypes = model.relationshipTypes; holonTypes = model.holonTypes || [];
     populateTreeSelectors();
     createViews();
+    refreshGraphRootCombo();
     setStatus(`${holons.length} Holons · ${relationships.length} relationships`, 'success');
   } catch (error) { setStatus(error.message || 'Unable to load Holon model', 'error'); }
 }
@@ -198,7 +196,7 @@ async function applySession(session) {
   if (elements.refresh) elements.refresh.disabled = !user;
   if (user) return loadModel();
   holons = []; relationships = []; relationshipTypes = []; holonTypes = [];
-  treeGrid?.destroy(); treeGrid = null; destroyHolonGraph(); graph = null;
+  treeGrid?.destroy(); treeGrid = null; destroyHolonGraph(); graph = null; graphRootCombo?.destroy?.(); graphRootCombo = null;
   setStatus('Sign in to open the Holon Workspace');
 }
 
