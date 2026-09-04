@@ -41,15 +41,16 @@ function showContextMenu(x, y, items)
   setTimeout(() => document.addEventListener('mousedown', close), 0);
 }
 
-function bindDoubleClick(element, grid, onContextMenu)
+function bindDoubleClick(element, grid, onContextMenu, onRowDoubleClick)
 {
   element.addEventListener('dblclick', async event =>
   {
     const row = rowFromEvent(event, grid);
-    if (!row || !onContextMenu) return;
+    if (!row) return;
+    if (onRowDoubleClick) return onRowDoubleClick(row, event);
+    if (!onContextMenu) return;
 
-    // Reuse the existing Edit action so double-click and the context menu
-    // always open the same editor and follow the same save path.
+    // Backward-compatible default: double-click opens Edit.
     await onContextMenu(event, row, items =>
     {
       const edit = items.find(item => item.label === 'Edit');
@@ -85,7 +86,7 @@ export function createHolonGrid({ element, holons, onSelect, onContextMenu, onRo
     onRowEdit,
   });
 
-  bindDoubleClick(element, grid, onContextMenu);
+  bindDoubleClick(element, grid, onContextMenu, onRowDoubleClick);
 
   element.addEventListener('contextmenu', event =>
   {
