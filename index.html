@@ -58,7 +58,7 @@
         });
         await import('./eBStatus.js').then(({ eBStatus }) => { eBStatus.init(); window.ebStatus = eBStatus; });
         await import('./CFstatus.js').then(({ CFstatus }) => { window.ebCFStatus = CFstatus.init(); });
-        await import('./app.js');
+        await import('./appGraph.js');
         await import('./propertyEditor.js').then(({ initPropertyEditor }) => initPropertyEditor());
     </script>
 </body>
