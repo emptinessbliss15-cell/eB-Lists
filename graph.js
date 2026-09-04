@@ -1,5 +1,7 @@
-export function createHolonGraph({ element, holons, relationships, onSelect })
+export function createHolonGraph({ element, holons, relationships, onSelect, depth = 2 })
 {
+  let currentDepth = normalizeDepth(depth);
+
   const cy = cytoscape({
     container: element,
     elements: [],
@@ -13,17 +15,50 @@ export function createHolonGraph({ element, holons, relationships, onSelect })
 
   cy.on('tap', 'node', event => onSelect?.(event.target.data('holon')));
   cy.on('dbltap', 'node', event => focus(event.target.id()));
-  return { cy, holons, relationships, focus };
+  return { cy, holons, relationships, focus, setDepth, getDepth };
+
+  function setDepth(value)
+  {
+    currentDepth = normalizeDepth(value);
+    const selected = cy.$('node:selected').first();
+    const rootId = selected.nonempty() ? selected.id() : cy.nodes('.root').first().id();
+    if (rootId) focus(rootId);
+  }
+
+  function getDepth()
+  {
+    return currentDepth;
+  }
 
   function focus(rootId)
   {
     const root = holons.find(h => h.id === rootId);
     if (!root) return;
 
-    const childRelations = relationships.filter(r => r.target_holon_id === rootId);
-    const childIds = childRelations.map(r => r.source_holon_id);
-    const visibleIds = [rootId, ...childIds];
-    const visible = holons.filter(h => visibleIds.includes(h.id));
+    const visibleIds = new Set([rootId]);
+    let frontier = new Set([rootId]);
+
+    for (let level = 1; level <= currentDepth; level += 1)
+    {
+      const nextFrontier = new Set();
+      for (const parentId of frontier)
+      {
+        relationships
+          .filter(r => r.target_holon_id === parentId)
+          .forEach(r => {
+            visibleIds.add(r.source_holon_id);
+            nextFrontier.add(r.source_holon_id);
+          });
+      }
+      if (!nextFrontier.size) break;
+      frontier = nextFrontier;
+    }
+
+    const visible = holons.filter(h => visibleIds.has(h.id));
+    const visibleSet = new Set(visible.map(h => h.id));
+    const visibleRelationships = relationships.filter(r =>
+      visibleSet.has(r.source_holon_id) && visibleSet.has(r.target_holon_id)
+    );
 
     cy.elements().remove();
     cy.add(visible.map(h => ({
@@ -31,7 +66,7 @@ export function createHolonGraph({ element, holons, relationships, onSelect })
       data: { id: h.id, label: h.name || '(unnamed)', holon: h },
       classes: h.id === rootId ? 'root' : '',
     })));
-    cy.add(childRelations.map(r => ({
+    cy.add(visibleRelationships.map(r => ({
       group: 'edges',
       data: {
         id: r.id,
@@ -43,14 +78,48 @@ export function createHolonGraph({ element, holons, relationships, onSelect })
 
     cy.layout({
       name: 'concentric',
-      concentric: node => node.id() === rootId ? 2 : 1,
+      concentric: node => node.id() === rootId ? currentDepth + 1 : currentDepth - nodeDistanceFromRoot(node.id(), rootId),
       levelWidth: () => 1,
       minNodeSpacing: 80,
       padding: 50,
       animate: true,
     }).run();
 
-    cy.getElementById(rootId).select();
-    cy.center(cy.getElementById(rootId));
+    const rootNode = cy.getElementById(rootId);
+    rootNode.select();
+    cy.center(rootNode);
+  }
+
+  function nodeDistanceFromRoot(nodeId, rootId)
+  {
+    if (nodeId === rootId) return 0;
+    let frontier = new Set([rootId]);
+    const seen = new Set([rootId]);
+
+    for (let distance = 1; distance <= currentDepth; distance += 1)
+    {
+      const next = new Set();
+      for (const parentId of frontier)
+      {
+        relationships
+          .filter(r => r.target_holon_id === parentId)
+          .forEach(r => {
+            if (r.source_holon_id === nodeId) next.add(nodeId);
+            if (!seen.has(r.source_holon_id)) next.add(r.source_holon_id);
+          });
+      }
+      if (next.has(nodeId)) return distance;
+      next.forEach(id => seen.add(id));
+      frontier = next;
+      if (!frontier.size) break;
+    }
+    return currentDepth;
+  }
+
+  function normalizeDepth(value)
+  {
+    if (value === 'all' || value === Infinity) return Infinity;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 2;
   }
 }
