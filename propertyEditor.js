@@ -7,6 +7,29 @@ import { eBliss } from './eBSDK.js';
 let propertyGrid = null;
 let currentHolon = null;
 
+function installLayoutStyles() {
+  if (document.getElementById('property-editor-layout-style')) return;
+  const style = document.createElement('style');
+  style.id = 'property-editor-layout-style';
+  style.textContent = `
+    .workspace-grid { grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); min-height: calc(100vh - 140px); }
+    .holon-workspace { min-width: 0; }
+    .property-editor { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+    .property-editor[hidden] { display: none; }
+    .property-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .property-editor-heading h3 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .property-editor-heading button { border: 0; background: transparent; color: var(--eb-text); font-size: 22px; line-height: 1; padding: 2px 6px; }
+    .property-editor [data-property-grid] { min-height: 0; flex: 1; }
+    @media (max-width: 760px) {
+      .workspace-grid { grid-template-columns: 1fr; min-height: 0; }
+    }
+    @media (min-width: 761px) {
+      .workspace-grid:has(#propertyEditor[hidden]) { grid-template-columns: 1fr; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 function propertyRows(holon) {
   return [
     { property: 'Name', value: holon.name ?? '', field: 'name' },
@@ -84,6 +107,7 @@ function hide() {
 }
 
 export function initPropertyEditor() {
+  installLayoutStyles();
   const gridHost = document.getElementById('grid');
   if (!gridHost) return;
 
