@@ -41,13 +41,20 @@ function showContextMenu(x, y, items)
   setTimeout(() => document.addEventListener('mousedown', close), 0);
 }
 
-function bindDoubleClick(element, grid, onRowDoubleClick)
+function bindDoubleClick(element, grid, onContextMenu)
 {
-  element.addEventListener('dblclick', event =>
+  element.addEventListener('dblclick', async event =>
   {
     const row = rowFromEvent(event, grid);
-    if (!row) return;
-    onRowDoubleClick?.(row);
+    if (!row || !onContextMenu) return;
+
+    // Reuse the existing Edit action so double-click and the context menu
+    // always open the same editor and follow the same save path.
+    await onContextMenu(event, row, items =>
+    {
+      const edit = items.find(item => item.label === 'Edit');
+      return edit?.action?.();
+    });
   });
 }
 
@@ -78,7 +85,7 @@ export function createHolonGrid({ element, holons, onSelect, onContextMenu, onRo
     onRowEdit,
   });
 
-  bindDoubleClick(element, grid, onRowDoubleClick);
+  bindDoubleClick(element, grid, onContextMenu);
 
   element.addEventListener('contextmenu', event =>
   {
@@ -110,7 +117,7 @@ export function createRelationshipGrid({ element, relationships, onContextMenu, 
     onRowEdit,
   });
 
-  bindDoubleClick(element, grid, onRowDoubleClick);
+  bindDoubleClick(element, grid, onContextMenu);
 
   element.addEventListener('contextmenu', event =>
   {
