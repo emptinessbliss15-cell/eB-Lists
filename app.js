@@ -17,7 +17,7 @@ const elements = {
   treeRoot: document.getElementById('treeRoot'), treeRelationship: document.getElementById('treeRelationship'), grid: document.getElementById('grid'),
   detailGrid: document.getElementById('detailGrid'), activeList: document.getElementById('activeList'), listMode: document.getElementById('listMode'),
   refresh: document.getElementById('refresh'), refreshApp: document.getElementById('refreshApp'), debugApp: document.getElementById('debugApp'),
-  newHolonType: document.getElementById('newHolonType'), testComboBox: document.getElementById('testComboBox'),
+  newHolon: document.getElementById('newHolon'), newHolonType: document.getElementById('newHolonType'), testComboBox: document.getElementById('testComboBox'),
   testStatusSuccess: document.getElementById('testStatusSuccess'), testStatusWarn: document.getElementById('testStatusWarn'), testStatusError: document.getElementById('testStatusError'),
 };
 let holons = [], relationships = [], relationshipTypes = [], holonTypes = [];
@@ -267,6 +267,7 @@ async function applySession(session) {
 }
 
 elements.treeRoot.addEventListener('change', createViews); elements.treeRelationship.addEventListener('change', createViews); elements.refresh.addEventListener('click', loadModel);
+elements.newHolon.addEventListener('click', () => createHolon());
 elements.newHolonType.addEventListener('click', createHolonType);
 elements.testComboBox.addEventListener('click', testComboBox);
 elements.refreshApp.addEventListener('click', () => location.reload()); elements.debugApp.addEventListener('click', () => { setStatus('Debugger paused', 'warn'); debugger; });
