@@ -38,7 +38,19 @@
                         <section class="panel panel-graph">
                             <div class="panel-heading">
                                 <h3>Holarchy</h3>
-                                <div class="muted">Double-click a Holon to center it and show its children</div>
+                                <div class="panel-actions">
+                                    <label>
+                                        Depth
+                                        <select id="graphDepth" aria-label="Holarchy graph depth">
+                                            <option value="1">1</option>
+                                            <option value="2" selected>2</option>
+                                            <option value="3">3</option>
+                                            <option value="4">4</option>
+                                            <option value="all">∞</option>
+                                        </select>
+                                    </label>
+                                    <div class="muted">Click a Holon to center it</div>
+                                </div>
                             </div>
                             <div id="holonGraph" aria-label="Holon relationship graph"></div>
                         </section>
