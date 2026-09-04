@@ -13,7 +13,6 @@
   --eb-shadow: 0 4px 14px rgba(0,0,0,.15);
   --eb-overlay: rgba(0,0,0,.28);
 
-  /* VanillaGrid follows the same application color scheme. */
   --vg-bg: #fff;
   --vg-fg: #222;
   --vg-muted: #6b7280;
@@ -124,7 +123,6 @@ button { cursor: pointer; }
   .eb-status-current[data-level="warn"], .status-log-entry[data-level="warn"] { background: #594b19 !important; color: #fff3cd; }
   .eb-status-current[data-level="error"], .status-log-entry[data-level="error"] { background: #5a242a !important; color: #f8d7da; }
 
-  /* Vendor components that use fixed light colors instead of variables. */
   .vg-filter-mode-btn { background: var(--vg-surface-2); }
   .vg-filter-mode-btn:hover { background: var(--vg-hover); }
   .vg-filter-mode-btn:active { background: #333; }
@@ -134,22 +132,21 @@ button { cursor: pointer; }
   .vg-filter-mode-option:hover { background: var(--vg-hover); }
   .vg-error { color: #fca5a5; background: #3a1717; border-color: #6b2424; }
 
-  /* hcg-autocomplete dark theme overrides. The vendor defaults are light. */
+  .hcg-autocomplete-panel { background: var(--eb-surface) !important; color: var(--eb-text) !important; border-color: var(--eb-border) !important; }
+
+  /* hcg-autocomplete keeps its own light defaults unless overridden. */
   .hcg-autocomplete {
     --hcg-ac-bg: #202020;
     --hcg-ac-hover: #303030;
     --hcg-ac-active: #3a3a3a;
     --hcg-ac-text: #eeeeee;
-    --hcg-ac-muted: #aaaaaa;
-    --hcg-ac-border: #4a4a4a;
-    --hcg-ac-border-focus: #6b8cff;
-    --hcg-ac-chip-bg: #343434;
-    --hcg-ac-mark: #6b5b00;
+    --hcg-ac-muted: #a0a0a0;
+    --hcg-ac-chip-bg: #353535;
+    --hcg-ac-border: #555;
   }
 
-  .hcg-autocomplete-panel { background: var(--hcg-ac-bg) !important; color: var(--hcg-ac-text) !important; border-color: var(--hcg-ac-border) !important; }
-  .hcg-autocomplete-input { background: var(--hcg-ac-bg) !important; color: var(--hcg-ac-text) !important; border-color: var(--hcg-ac-border) !important; }
-  .hcg-autocomplete-control { background: var(--hcg-ac-bg) !important; border-color: var(--hcg-ac-border) !important; }
+  .hcg-autocomplete-option { cursor: pointer; }
+  .hcg-autocomplete-option.is-disabled { cursor: not-allowed; }
 }
 
 @media (max-width: 760px) { .eb-header-inner { grid-template-columns: auto 1fr; justify-items: start; } .eb-brand, .eb-app-name, .eb-row { grid-column: 2; } .eb-app-name { text-align: left; } .eb-row { justify-content: flex-start; } .eb-status { grid-template-columns: 1fr; } .eb-navigation { grid-template-columns: 1fr; } .eb-tree { border-right: 0; border-bottom: 1px solid var(--eb-border); max-height: 35vh; } .workspace-grid { grid-template-columns: 1fr; } }
