@@ -36,13 +36,14 @@
                     <div class="workspace-grid">
                         <section class="panel holon-workspace">
                             <div class="panel-heading">
-                                <h3>Holons</h3>
+                                <h3>Holarchy</h3>
                                 <div class="panel-actions">
                                     <button id="newHolon" type="button">+ Holon</button>
+                                    <button id="newRelationship" type="button">+ Relationship</button>
                                     <button id="newHolonType" type="button">+ Type</button>
                                 </div>
                             </div>
-                            <div id="grid" aria-label="Holons"></div>
+                            <div id="holonGraph" aria-label="Holarchy graph"></div>
                         </section>
 
                         <aside id="propertyEditor" class="panel property-editor" hidden aria-label="Holon properties">
@@ -60,6 +61,7 @@
 
     <script src="./vendor/vanillagrid.js"></script>
     <script src="./vendor/hcg-autocomplete.js"></script>
+    <script src="./vendor/cytoscape.min.js"></script>
     <script type="module">
         const header = document.getElementById('header');
         const response = await fetch(`./header.html?v=${Date.now()}`, { cache: 'no-store' });
