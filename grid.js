@@ -47,7 +47,18 @@ function bindDoubleClick(element, grid, onContextMenu, onRowDoubleClick)
   {
     const row = rowFromEvent(event, grid);
     if (!row) return;
-    if (onRowDoubleClick) return onRowDoubleClick(row, event);
+
+    if (onRowDoubleClick)
+    {
+      // VanillaGrid also uses double-click for inline editing. Capture the
+      // event before the grid sees it when the caller has supplied a custom
+      // double-click action such as focusing the Holarchy graph.
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      return onRowDoubleClick(row, event);
+    }
+
     if (!onContextMenu) return;
 
     // Backward-compatible default: double-click opens Edit.
@@ -56,7 +67,7 @@ function bindDoubleClick(element, grid, onContextMenu, onRowDoubleClick)
       const edit = items.find(item => item.label === 'Edit');
       return edit?.action?.();
     });
-  });
+  }, !!onRowDoubleClick);
 }
 
 export function createHolonGrid({ element, holons, onSelect, onContextMenu, onRowEdit, onRowDoubleClick })
