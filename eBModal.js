@@ -47,7 +47,6 @@ export function showModal({ title, fields = [], submitLabel = 'Save', cancelLabe
       label.appendChild(caption);
 
       let control;
-      let combo = null;
 
       if (field.type === 'select')
       {
@@ -61,11 +60,25 @@ export function showModal({ title, fields = [], submitLabel = 'Save', cancelLabe
           control.appendChild(item);
         });
       }
-      else if (field.type === 'combobox')
+      else
       {
         control = document.createElement('input');
-        control.type = 'text';
-        control.placeholder = field.placeholder || 'Type to search…';
+        control.type = field.type === 'combobox' ? 'text' : (field.type || 'text');
+        control.value = field.type === 'combobox' ? '' : (field.value ?? '');
+      }
+
+      control.name = field.name;
+      control.required = field.type === 'combobox' && field.multiple ? false : !!field.required;
+      if (field.placeholder) control.placeholder = field.placeholder;
+
+      // hcg-autocomplete requires input.parentNode during initialization,
+      // so attach the raw control to the modal DOM first.
+      label.appendChild(control);
+      body.appendChild(label);
+
+      let combo = null;
+      if (field.type === 'combobox')
+      {
         combo = createEBComboBox(control, {
           source: field.options || [],
           multiple: !!field.multiple,
@@ -76,18 +89,7 @@ export function showModal({ title, fields = [], submitLabel = 'Save', cancelLabe
         comboBoxes.push(combo);
         if (field.value != null && field.value !== '') combo.setValue(field.value, true);
       }
-      else
-      {
-        control = document.createElement('input');
-        control.type = field.type || 'text';
-        control.value = field.value ?? '';
-      }
 
-      control.name = field.name;
-      control.required = !!field.required;
-      if (field.placeholder && field.type !== 'combobox') control.placeholder = field.placeholder;
-      label.appendChild(control.closest('.hcg-autocomplete') || control);
-      body.appendChild(label);
       controls.set(field.name, { control, combo, field });
     });
 
