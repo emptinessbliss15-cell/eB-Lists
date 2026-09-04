@@ -97,7 +97,7 @@ async function createHolon(prefillName = '', prefillType = '') {
     submitLabel: 'Create Holon',
     fields: [
       { name: 'name', label: 'Name', required: true, placeholder: 'Holon name', value: prefillName },
-      { name: 'holon_type', label: 'Type', type: 'select', options: holonTypeOptions(type), value: type, required: true },
+      { name: 'holon_type', label: 'Type', type: 'combobox', options: holonTypeOptions(type), value: type, required: true, minChars: 0, allowCustom: false, placeholder: 'Find a Holon type…' },
       { name: 'relationship_type_id', label: 'Initial Relationship', type: 'select', options: relationshipTypeOptions(true), value: '' },
       { name: 'parent_holon_id', label: 'Parent Holon', type: 'select', options: holonOptions(true), value: '' },
       { name: 'position', label: 'Position', type: 'number', value: '0' },
