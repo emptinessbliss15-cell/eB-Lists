@@ -72,6 +72,11 @@ button { cursor: pointer; }
 .eb-main { min-width: 0; padding: 12px; }
 .card { border: 1px solid var(--eb-border); border-radius: 8px; background: var(--eb-surface); color: var(--eb-text); padding: 14px; }
 .workspace-grid { display: grid; grid-template-columns: minmax(240px,360px) minmax(0,1fr); gap: 18px; }
+.panel-graph { grid-column: 1 / -1; }
+#holonGraph { width: 100%; height: 460px; min-height: 320px; border: 1px solid var(--eb-border); border-radius: 6px; background: var(--eb-surface-alt); }
+.panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.panel-heading h3 { margin: 0; }
+.panel-heading .muted { font-size: 12px; }
 .panel { min-width: 0; }
 .panel h3 { margin: 0 0 8px; }
 #grid { min-height: 420px; }
