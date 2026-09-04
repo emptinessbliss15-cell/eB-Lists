@@ -256,7 +256,7 @@ function relationshipMenu(event, relationship, show) { show([{ label: 'New Relat
 function createViews() {
   treeGrid?.destroy(); holonGrid?.destroy(); relationshipGrid?.destroy(); holonGraph?.cy.destroy();
   treeGrid = createTree({ element: elements.tree, holons, relationships, rootId: elements.treeRoot.value, relationshipTypeId: elements.treeRelationship.value, onSelect: openHolon, onCreate: createHolon, onEdit: editHolon, onDelete: deleteHolon });
-  holonGrid = createHolonGrid({ element: elements.grid, holons, onSelect: openHolon, onContextMenu: holonMenu, onRowEdit: saveHolonCell });
+  holonGrid = createHolonGrid({ element: elements.grid, holons, onSelect: openHolon, onContextMenu: holonMenu, onRowEdit: saveHolonCell, onRowDoubleClick: focusGraph });
   relationshipGrid = createRelationshipGrid({ element: elements.detailGrid, relationships, onContextMenu: relationshipMenu, onRowEdit: saveRelationshipCell });
   holonGraph = createHolonGraph({ element: elements.graph, holons, relationships, onSelect: openHolon });
 }
