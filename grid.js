@@ -41,23 +41,17 @@ function showContextMenu(x, y, items)
   setTimeout(() => document.addEventListener('mousedown', close), 0);
 }
 
-function bindInlineEditing(element, grid)
+function bindDoubleClick(element, grid, onRowDoubleClick)
 {
   element.addEventListener('dblclick', event =>
   {
-    const cell = event.target.closest('td[data-column-key]');
-    if (!cell) return;
-
-    const row = cell.closest('tr[data-rowid]');
+    const row = rowFromEvent(event, grid);
     if (!row) return;
-
-    const rowId = Number(row.dataset.rowid);
-    const columnKey = cell.dataset.columnKey;
-    grid.startEdit?.(rowId, columnKey);
+    onRowDoubleClick?.(row);
   });
 }
 
-export function createHolonGrid({ element, holons, onSelect, onContextMenu, onRowEdit })
+export function createHolonGrid({ element, holons, onSelect, onContextMenu, onRowEdit, onRowDoubleClick })
 {
   const grid = new VanillaGrid(element, {
     data: holons,
@@ -84,7 +78,7 @@ export function createHolonGrid({ element, holons, onSelect, onContextMenu, onRo
     onRowEdit,
   });
 
-  bindInlineEditing(element, grid);
+  bindDoubleClick(element, grid, onRowDoubleClick);
 
   element.addEventListener('contextmenu', event =>
   {
@@ -97,7 +91,7 @@ export function createHolonGrid({ element, holons, onSelect, onContextMenu, onRo
   return grid;
 }
 
-export function createRelationshipGrid({ element, relationships, onContextMenu, onRowEdit })
+export function createRelationshipGrid({ element, relationships, onContextMenu, onRowEdit, onRowDoubleClick })
 {
   const grid = new VanillaGrid(element, {
     data: relationships,
@@ -116,7 +110,7 @@ export function createRelationshipGrid({ element, relationships, onContextMenu, 
     onRowEdit,
   });
 
-  bindInlineEditing(element, grid);
+  bindDoubleClick(element, grid, onRowDoubleClick);
 
   element.addEventListener('contextmenu', event =>
   {
