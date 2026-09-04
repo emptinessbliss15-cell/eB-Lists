@@ -54,16 +54,18 @@ button { cursor: pointer; }
 .eb-context-menu { position: fixed; z-index: 10000; min-width: 150px; padding: 4px; border: 1px solid #ccc; border-radius: 6px; background: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
 .eb-context-menu button { display: block; width: 100%; border: 0; border-radius: 4px; background: transparent; padding: 7px 10px; text-align: left; }
 .eb-context-menu button:hover { background: #e9e9e9; }
-.eb-modal-overlay { position: fixed; inset: 0; z-index: 20000; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.28); }
-.eb-modal { width: min(520px, calc(100vw - 40px)); max-height: min(80vh, 700px); overflow: auto; border: 1px solid #aaa; border-radius: 10px; background: #fff; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+.eb-modal-overlay { position: fixed; inset: 0; z-index: 20000; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.28); overflow: visible; }
+.eb-modal { width: min(520px, calc(100vw - 40px)); max-height: min(80vh, 700px); overflow: visible; border: 1px solid #aaa; border-radius: 10px; background: #fff; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
 .eb-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #ddd; }
 .eb-modal-header h2 { margin: 0; font-size: 18px; }
 .eb-modal-close { border: 0; background: transparent; font-size: 24px; line-height: 1; padding: 0 4px; }
-.eb-modal-body { display: grid; gap: 14px; padding: 16px; }
+.eb-modal-body { display: grid; gap: 14px; padding: 16px; overflow: visible; }
 .eb-modal-field { display: grid; gap: 6px; }
 .eb-modal-field > span { font-weight: 600; font-size: 13px; }
 .eb-modal-field input, .eb-modal-field select { width: 100%; padding: 9px 10px; border: 1px solid #bbb; border-radius: 5px; background: #fff; }
 .eb-modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid #ddd; }
 .eb-modal-footer button { padding: 8px 14px; border: 1px solid #aaa; border-radius: 5px; background: #fff; }
 .eb-modal-footer .eb-modal-submit { font-weight: 600; }
+.hcg-autocomplete { position: relative; z-index: 20001; }
+.hcg-autocomplete-panel { z-index: 20002; max-height: 260px; overflow-y: auto; }
 @media (max-width: 760px) { .eb-header-inner { grid-template-columns: auto 1fr; justify-items: start; } .eb-brand, .eb-app-name, .eb-row { grid-column: 2; } .eb-app-name { text-align: left; } .eb-row { justify-content: flex-start; } .eb-status { grid-template-columns: 1fr; } .eb-navigation { grid-template-columns: 1fr; } .eb-tree { border-right: 0; border-bottom: 1px solid #ccc; max-height: 35vh; } .workspace-grid { grid-template-columns: 1fr; } }
