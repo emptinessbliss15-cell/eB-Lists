@@ -93,6 +93,7 @@ async function testComboBox() {
         options: holonOptions(),
         multiple: true,
         allowCustom: true,
+        minChars: 0,
         placeholder: 'Type to find or enter a new Holon…',
       },
     ],
@@ -100,8 +101,9 @@ async function testComboBox() {
 
   if (!values) return;
   const selected = Array.isArray(values.holons) ? values.holons : [values.holons].filter(Boolean);
-  setStatus(`Combo box submitted ${selected.length} value${selected.length === 1 ? '' : 's'}: ${selected.join(', ') || '(none)'}`, 'success');
-  console.log('Combo box test submission:', selected);
+  const selectedLabels = selected.map(value => holons.find(h => h.id === value)?.name || value);
+  setStatus(`Combo box submitted ${selected.length} value${selected.length === 1 ? '' : 's'}: ${selectedLabels.join(', ') || '(none)'}`, 'success');
+  console.log('Combo box test submission:', { values: selected, labels: selectedLabels });
 }
 async function createHolon() {
   const type = defaultHolonType();
