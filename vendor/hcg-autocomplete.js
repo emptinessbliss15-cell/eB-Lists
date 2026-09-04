@@ -341,7 +341,9 @@
     };
 
     const selectableItems = () => (
-      items.filter((listItem) => !listItem.hidden && !listItem.classList.contains('is-disabled'))
+      items.filter((listItem) => !listItem.hidden
+        && !listItem.classList.contains('is-disabled')
+        && !listItem.classList.contains('is-selected'))
     );
 
     const scrollItemIntoList = (listItem) => {
@@ -379,9 +381,12 @@
         listItem.setAttribute('role', 'option');
         listItem.dataset.value = item.value;
         listItem.dataset.label = item.label;
-        if (item.disabled || (options.multiple && hasSelectedValue(item.value))) {
+        if (item.disabled) {
           listItem.classList.add('is-disabled');
           listItem.setAttribute('aria-disabled', 'true');
+        } else if (options.multiple && hasSelectedValue(item.value)) {
+          listItem.classList.add('is-selected');
+          listItem.setAttribute('aria-selected', 'true');
         }
         if (options.highlight && query) {
           listItem.innerHTML = highlight(item.label, query);
@@ -549,7 +554,7 @@
     };
 
     const choose = (listItem) => {
-      if (!listItem || listItem.classList.contains('is-disabled')) return;
+      if (!listItem || listItem.classList.contains('is-disabled') || listItem.classList.contains('is-selected')) return;
       const item = {
         value: listItem.dataset.value,
         label: listItem.dataset.label,
