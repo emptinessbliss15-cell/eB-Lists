@@ -15,42 +15,33 @@
     <div id="shell" class="eb-shell">
         <div id="header"></div>
         <div id="status"></div>
-        <div class="eb-navigation">
-            <nav class="eb-tree" aria-label="Holon tree">
-                <div class="tree-controls">
-                    <label>Root<select id="treeRoot"></select></label>
-                    <label>Relationship<select id="treeRelationship"></select></label>
+        <main class="eb-main">
+            <section id="app" class="card" hidden>
+                <div class="workspace-grid">
+                    <section class="panel holon-workspace">
+                        <div class="panel-heading">
+                            <div class="graph-context">
+                                <label for="graphRoot">Root</label>
+                                <input id="graphRoot" type="text" autocomplete="off" placeholder="Choose a root Holon…" aria-label="Graph root Holon">
+                            </div>
+                            <div class="panel-actions">
+                                <button id="newHolon" type="button">+ Holon</button>
+                                <button id="newRelationship" type="button">+ Relationship</button>
+                                <button id="newHolonType" type="button">+ Type</button>
+                            </div>
+                        </div>
+                        <div id="holonGraph" aria-label="Holarchy graph"></div>
+                    </section>
+                    <aside id="propertyEditor" class="panel property-editor" hidden aria-label="Holon properties">
+                        <div class="property-editor-heading">
+                            <h3 id="propertyEditorTitle">Holon</h3>
+                            <button id="propertyEditorClose" type="button" aria-label="Close property editor">×</button>
+                        </div>
+                        <div data-property-grid aria-label="Holon properties"></div>
+                    </aside>
                 </div>
-                <div id="treeGrid" aria-label="Holon tree"></div>
-            </nav>
-            <main class="eb-main">
-                <section id="app" class="card" hidden>
-                    <div class="workspace-grid">
-                        <section class="panel holon-workspace">
-                            <div class="panel-heading">
-                                <div class="graph-context">
-                                    <label for="graphRoot">Root</label>
-                                    <input id="graphRoot" type="text" autocomplete="off" placeholder="Choose a root Holon…" aria-label="Graph root Holon">
-                                </div>
-                                <div class="panel-actions">
-                                    <button id="newHolon" type="button">+ Holon</button>
-                                    <button id="newRelationship" type="button">+ Relationship</button>
-                                    <button id="newHolonType" type="button">+ Type</button>
-                                </div>
-                            </div>
-                            <div id="holonGraph" aria-label="Holarchy graph"></div>
-                        </section>
-                        <aside id="propertyEditor" class="panel property-editor" hidden aria-label="Holon properties">
-                            <div class="property-editor-heading">
-                                <h3 id="propertyEditorTitle">Holon</h3>
-                                <button id="propertyEditorClose" type="button" aria-label="Close property editor">×</button>
-                            </div>
-                            <div data-property-grid aria-label="Holon properties"></div>
-                        </aside>
-                    </div>
-                </section>
-            </main>
-        </div>
+            </section>
+        </main>
     </div>
     <script src="./vendor/vanillagrid.js"></script>
     <script src="./vendor/hcg-autocomplete.js"></script>
