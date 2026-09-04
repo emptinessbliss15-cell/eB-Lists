@@ -6,7 +6,7 @@ console.log("=== NEW APP.JS LOADED ===");
 import { initAuth } from './auth.js';
 import { eBliss } from './eBSDK.js';
 import { loadHolons } from './holons.js';
-import { createTree } from './tree.js';
+import { createTree, updateTree } from './tree.js';
 import { eBStatus } from './eBStatus.js';
 import { createHolonGrid, createRelationshipGrid, setRelationships } from './grid.js';
 import { showModal } from './eBModal.js';
@@ -260,6 +260,9 @@ function createViews() {
   relationshipGrid = createRelationshipGrid({ element: elements.detailGrid, relationships, onContextMenu: relationshipMenu, onRowEdit: saveRelationshipCell });
   holonGraph = createHolonGraph({ element: elements.graph, holons, relationships, onSelect: openHolon });
 }
+function updateTreeView() {
+  updateTree(treeGrid, holons, relationships, elements.treeRoot.value, elements.treeRelationship.value);
+}
 async function loadModel() {
   setStatus('Loading Holon model…');
   try { const model = await loadHolons(eBliss); holons = model.holons; relationships = model.relationships; relationshipTypes = model.relationshipTypes; holonTypes = model.holonTypes || []; populateTreeSelectors(); createViews(); setStatus(`${holons.length} holons · ${relationships.length} relationships`, 'success'); }
@@ -271,7 +274,7 @@ async function applySession(session) {
   holons = []; relationships = []; relationshipTypes = []; holonTypes = []; treeGrid?.destroy(); holonGrid?.destroy(); relationshipGrid?.destroy(); holonGraph?.cy.destroy(); treeGrid = holonGrid = relationshipGrid = holonGraph = null; setStatus('Sign in to open the Holon Workspace');
 }
 
-elements.treeRoot.addEventListener('change', createViews); elements.treeRelationship.addEventListener('change', createViews); elements.refresh.addEventListener('click', loadModel);
+elements.treeRoot.addEventListener('change', updateTreeView); elements.treeRelationship.addEventListener('change', updateTreeView); elements.refresh.addEventListener('click', loadModel);
 elements.newHolon.addEventListener('click', () => createHolon());
 elements.newHolonType.addEventListener('click', createHolonType);
 elements.testComboBox.addEventListener('click', testComboBox);
