@@ -1,3 +1,6 @@
+// eBliss app bootstrap and UI operations.
+// Freeform Holon creation is handled through the normal New Holon modal.
+
 console.log("=== NEW APP.JS LOADED ===");
 
 import { initAuth } from './auth.js';
@@ -81,6 +84,47 @@ async function createHolonType() {
     setStatus(error.message || 'Unable to create Holon type', 'error');
   }
 }
+
+async function createHolon(prefillName = '', prefillType = '') {
+  const type = prefillType || defaultHolonType();
+  if (!type) {
+    setStatus('No Holon types are available', 'error');
+    return null;
+  }
+
+  const values = await showModal({
+    title: 'New Holon',
+    submitLabel: 'Create Holon',
+    fields: [
+      { name: 'name', label: 'Name', required: true, placeholder: 'Holon name', value: prefillName },
+      { name: 'holon_type', label: 'Type', type: 'select', options: holonTypeOptions(type), value: type, required: true },
+      { name: 'relationship_type_id', label: 'Initial Relationship', type: 'select', options: relationshipTypeOptions(true), value: '' },
+      { name: 'parent_holon_id', label: 'Parent Holon', type: 'select', options: holonOptions(true), value: '' },
+      { name: 'position', label: 'Position', type: 'number', value: '0' },
+    ],
+  });
+  if (!values?.name?.trim()) return null;
+  if ((values.relationship_type_id && !values.parent_holon_id) || (!values.relationship_type_id && values.parent_holon_id)) {
+    setStatus('Choose both an initial relationship and a parent Holon, or leave both empty', 'warn');
+    return null;
+  }
+
+  const name = values.name.trim();
+  setStatus(`Creating ${name}…`);
+  try {
+    const holon = await eBliss.holons.create({ name, holon_type: values.holon_type });
+    if (values.relationship_type_id && values.parent_holon_id) {
+      await eBliss.relationships.create({ source_holon_id: holon.id, target_holon_id: values.parent_holon_id, relationship_type_id: values.relationship_type_id, position: Number(values.position) || 0 });
+    }
+    await loadModel();
+    setStatus(`Created ${name}`, 'success');
+    return holon;
+  } catch (error) {
+    setStatus(error.message || 'Unable to create Holon', 'error');
+    return null;
+  }
+}
+
 async function testComboBox() {
   const values = await showModal({
     title: 'Combo Box Test',
@@ -101,39 +145,25 @@ async function testComboBox() {
 
   if (!values) return;
   const selected = Array.isArray(values.holons) ? values.holons : [values.holons].filter(Boolean);
-  const selectedLabels = selected.map(value => holons.find(h => h.id === value)?.name || value);
-  setStatus(`Combo box submitted ${selected.length} value${selected.length === 1 ? '' : 's'}: ${selectedLabels.join(', ') || '(none)'}`, 'success');
-  console.log('Combo box test submission:', { values: selected, labels: selectedLabels });
-}
-async function createHolon() {
-  const type = defaultHolonType();
-  if (!type) return setStatus('No Holon types are available', 'error');
-  const values = await showModal({
-    title: 'New Holon',
-    submitLabel: 'Create Holon',
-    fields: [
-      { name: 'name', label: 'Name', required: true, placeholder: 'Holon name' },
-      { name: 'holon_type', label: 'Type', type: 'select', options: holonTypeOptions(type), value: type, required: true },
-      { name: 'relationship_type_id', label: 'Initial Relationship', type: 'select', options: relationshipTypeOptions(true), value: '' },
-      { name: 'parent_holon_id', label: 'Parent Holon', type: 'select', options: holonOptions(true), value: '' },
-      { name: 'position', label: 'Position', type: 'number', value: '0' },
-    ],
-  });
-  if (!values?.name?.trim()) return;
-  if ((values.relationship_type_id && !values.parent_holon_id) || (!values.relationship_type_id && values.parent_holon_id)) {
-    return setStatus('Choose both an initial relationship and a parent Holon, or leave both empty', 'warn');
+  const existing = selected.filter(value => holons.some(h => h.id === value));
+  const newNames = selected.filter(value => !holons.some(h => h.id === value));
+
+  // Freeform values do not write directly from the ComboBox. They go through
+  // the normal New Holon modal so the user chooses the Holon's type and any
+  // initial relationship before the database write occurs.
+  for (const name of newNames) {
+    await createHolon(name);
   }
-  const name = values.name.trim();
-  setStatus(`Creating ${name}…`);
-  try {
-    const holon = await eBliss.holons.create({ name, holon_type: values.holon_type });
-    if (values.relationship_type_id && values.parent_holon_id) {
-      await eBliss.relationships.create({ source_holon_id: holon.id, target_holon_id: values.parent_holon_id, relationship_type_id: values.relationship_type_id, position: Number(values.position) || 0 });
-    }
-    await loadModel();
-    setStatus(`Created ${name}`, 'success');
-  } catch (error) { setStatus(error.message || 'Unable to create Holon', 'error'); }
+
+  const createdNames = newNames.filter(name => holons.some(h => h.name === name));
+  const finalNames = [
+    ...existing.map(value => holons.find(h => h.id === value)?.name || value),
+    ...createdNames,
+  ];
+  setStatus(`Combo box submitted ${finalNames.length} value${finalNames.length === 1 ? '' : 's'}: ${finalNames.join(', ') || '(none)'}`, 'success');
+  console.log('Combo box test submission:', { existing, requestedNew: newNames, created: createdNames, labels: finalNames });
 }
+
 async function editHolon(holon) {
   const currentType = holon.holon_type || defaultHolonType();
   const values = await showModal({
