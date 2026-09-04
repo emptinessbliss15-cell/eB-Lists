@@ -146,6 +146,7 @@ button { cursor: pointer; }
   }
 
   .hcg-autocomplete-option { cursor: pointer; }
+  .hcg-autocomplete-option.is-selected { cursor: default; opacity: .65; }
   .hcg-autocomplete-option.is-disabled { cursor: not-allowed; }
 }
 
