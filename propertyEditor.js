@@ -13,19 +13,15 @@ function installLayoutStyles() {
   style.id = 'property-editor-layout-style';
   style.textContent = `
     .workspace-grid { grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); min-height: calc(100vh - 140px); }
-    .holon-workspace { min-width: 0; }
+    .holon-workspace { min-width: 0; min-height: 0; }
     .property-editor { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
     .property-editor[hidden] { display: none; }
     .property-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
     .property-editor-heading h3 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .property-editor-heading button { border: 0; background: transparent; color: var(--eb-text); font-size: 22px; line-height: 1; padding: 2px 6px; }
     .property-editor [data-property-grid] { min-height: 0; flex: 1; }
-    @media (max-width: 760px) {
-      .workspace-grid { grid-template-columns: 1fr; min-height: 0; }
-    }
-    @media (min-width: 761px) {
-      .workspace-grid:has(#propertyEditor[hidden]) { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 760px) { .workspace-grid { grid-template-columns: 1fr; min-height: 0; } }
+    @media (min-width: 761px) { .workspace-grid:has(#propertyEditor[hidden]) { grid-template-columns: 1fr; } }
   `;
   document.head.appendChild(style);
 }
@@ -44,9 +40,10 @@ async function saveProperty(row, field, newValue, oldValue) {
   if (!value || value === String(oldValue ?? '')) return;
 
   try {
-    await eBliss.holons.update(currentHolon.id, { [field]: value });
-    currentHolon[field] = value;
+    const updated = await eBliss.holons.update(currentHolon.id, { [field]: value });
+    currentHolon = { ...currentHolon, ...updated, [field]: value };
     propertyGrid?.setData(propertyRows(currentHolon));
+    window.dispatchEvent(new CustomEvent('holon:property-updated', { detail: currentHolon }));
     window.ebStatus?.success?.('Holon updated');
   } catch (error) {
     window.ebStatus?.error?.(error.message || 'Unable to update Holon');
@@ -54,23 +51,8 @@ async function saveProperty(row, field, newValue, oldValue) {
   }
 }
 
-function rowFromGridEvent(event) {
-  const row = event.target.closest('tr[data-rowid]');
-  if (!row) return null;
-  const cells = [...row.querySelectorAll('td')].map(cell => cell.textContent.trim());
-  if (cells.length < 2) return null;
-
-  // The current Holon grid is Name / Type / ID. Hidden columns remain
-  // represented by the grid row, so this keeps the inspector independent of
-  // VanillaGrid's internal row ids.
-  return {
-    name: cells[0] || '',
-    holon_type: cells[1] || '',
-    id: cells[cells.length - 1] || '',
-  };
-}
-
 function showHolon(holon) {
+  if (!holon) return hide();
   currentHolon = holon;
   const host = document.getElementById('propertyEditor');
   const title = document.getElementById('propertyEditorTitle');
@@ -108,18 +90,19 @@ function hide() {
 
 export function initPropertyEditor() {
   installLayoutStyles();
-  const gridHost = document.getElementById('grid');
-  if (!gridHost) return;
 
-  gridHost.addEventListener('click', event => {
-    const holon = rowFromGridEvent(event);
-    if (holon?.id) showHolon(holon);
+  window.addEventListener('holon:selected', event => showHolon(event.detail));
+  window.addEventListener('holon:property-updated', event => {
+    if (!currentHolon || !event.detail || currentHolon.id !== event.detail.id) return;
+    currentHolon = event.detail;
+    const title = document.getElementById('propertyEditorTitle');
+    if (title) title.textContent = currentHolon.name || 'Holon';
   });
 
   document.addEventListener('click', event => {
-    if (event.target.closest('#grid, #propertyEditor')) return;
+    if (event.target.closest('#holonGraph, #propertyEditor')) return;
     if (event.target.closest('.eb-modal, .eb-context-menu, .eb-header, .eb-status')) return;
-    hide();
+    if (currentHolon) hide();
   });
 
   document.addEventListener('keydown', event => {
