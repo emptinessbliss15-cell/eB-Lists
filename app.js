@@ -20,7 +20,7 @@ const elements = {
   refresh: document.getElementById('refresh'), refreshApp: document.getElementById('refreshApp'), debugApp: document.getElementById('debugApp'),
   newHolon: document.getElementById('newHolon'), newHolonType: document.getElementById('newHolonType'), testComboBox: document.getElementById('testComboBox'),
   testStatusSuccess: document.getElementById('testStatusSuccess'), testStatusWarn: document.getElementById('testStatusWarn'), testStatusError: document.getElementById('testStatusError'),
-  graph: document.getElementById('holonGraph'),
+  graph: document.getElementById('holonGraph'), graphDepth: document.getElementById('graphDepth'),
 };
 let holons = [], relationships = [], relationshipTypes = [], holonTypes = [];
 let treeGrid = null, holonGrid = null, relationshipGrid = null, holonGraph = null;
@@ -258,7 +258,7 @@ function createViews() {
   treeGrid = createTree({ element: elements.tree, holons, relationships, rootId: elements.treeRoot.value, relationshipTypeId: elements.treeRelationship.value, onSelect: openHolon, onCreate: createHolon, onEdit: editHolon, onDelete: deleteHolon });
   holonGrid = createHolonGrid({ element: elements.grid, holons, onSelect: openHolon, onContextMenu: holonMenu, onRowEdit: saveHolonCell, onRowDoubleClick: focusGraph });
   relationshipGrid = createRelationshipGrid({ element: elements.detailGrid, relationships, onContextMenu: relationshipMenu, onRowEdit: saveRelationshipCell });
-  holonGraph = createHolonGraph({ element: elements.graph, holons, relationships, onSelect: openHolon });
+  holonGraph = createHolonGraph({ element: elements.graph, holons, relationships, onSelect: openHolon, depth: elements.graphDepth.value });
 }
 function updateTreeView() {
   updateTree(treeGrid, holons, relationships, elements.treeRoot.value, elements.treeRelationship.value);
@@ -274,7 +274,7 @@ async function applySession(session) {
   holons = []; relationships = []; relationshipTypes = []; holonTypes = []; treeGrid?.destroy(); holonGrid?.destroy(); relationshipGrid?.destroy(); holonGraph?.cy.destroy(); treeGrid = holonGrid = relationshipGrid = holonGraph = null; setStatus('Sign in to open the Holon Workspace');
 }
 
-elements.treeRoot.addEventListener('change', updateTreeView); elements.treeRelationship.addEventListener('change', updateTreeView); elements.refresh.addEventListener('click', loadModel);
+elements.treeRoot.addEventListener('change', updateTreeView); elements.treeRelationship.addEventListener('change', updateTreeView); elements.graphDepth.addEventListener('change', event => holonGraph?.setDepth(event.target.value)); elements.refresh.addEventListener('click', loadModel);
 elements.newHolon.addEventListener('click', () => createHolon());
 elements.newHolonType.addEventListener('click', createHolonType);
 elements.testComboBox.addEventListener('click', testComboBox);
