@@ -34,7 +34,7 @@
             <main class="eb-main">
                 <section id="app" class="card" hidden>
                     <div class="workspace-grid">
-                        <section class="panel">
+                        <section class="panel holon-workspace">
                             <div class="panel-heading">
                                 <h3>Holons</h3>
                                 <div class="panel-actions">
@@ -45,11 +45,13 @@
                             <div id="grid" aria-label="Holons"></div>
                         </section>
 
-                        <section class="panel">
-                            <h3 id="activeList">Relationships</h3>
-                            <div class="muted" id="listMode"></div>
-                            <div id="detailGrid" aria-label="Relationships"></div>
-                        </section>
+                        <aside id="propertyEditor" class="panel property-editor" hidden aria-label="Holon properties">
+                            <div class="property-editor-heading">
+                                <h3 id="propertyEditorTitle">Holon</h3>
+                                <button id="propertyEditorClose" type="button" aria-label="Close property editor">×</button>
+                            </div>
+                            <div data-property-grid aria-label="Holon properties"></div>
+                        </aside>
                     </div>
                 </section>
             </main>
@@ -89,6 +91,7 @@
         });
 
         await import('./app.js');
+        await import('./propertyEditor.js').then(({ initPropertyEditor }) => initPropertyEditor());
     </script>
 </body>
 </html>
