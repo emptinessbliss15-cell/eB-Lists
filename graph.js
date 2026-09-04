@@ -35,10 +35,10 @@ export function createHolonGraph({ element, holons, relationships, onSelect, dep
     const root = holons.find(h => h.id === rootId);
     if (!root) return;
 
-    const visibleIds = new Set([rootId]);
+    const levels = new Map([[rootId, 0]]);
     let frontier = new Set([rootId]);
 
-    for (let level = 1; level <= currentDepth; level += 1)
+    for (let level = 1; currentDepth === Infinity || level <= currentDepth; level += 1)
     {
       const nextFrontier = new Set();
       for (const parentId of frontier)
@@ -46,7 +46,8 @@ export function createHolonGraph({ element, holons, relationships, onSelect, dep
         relationships
           .filter(r => r.target_holon_id === parentId)
           .forEach(r => {
-            visibleIds.add(r.source_holon_id);
+            if (levels.has(r.source_holon_id)) return;
+            levels.set(r.source_holon_id, level);
             nextFrontier.add(r.source_holon_id);
           });
       }
@@ -54,16 +55,22 @@ export function createHolonGraph({ element, holons, relationships, onSelect, dep
       frontier = nextFrontier;
     }
 
-    const visible = holons.filter(h => visibleIds.has(h.id));
+    const visible = holons.filter(h => levels.has(h.id));
     const visibleSet = new Set(visible.map(h => h.id));
     const visibleRelationships = relationships.filter(r =>
       visibleSet.has(r.source_holon_id) && visibleSet.has(r.target_holon_id)
     );
+    const maxLevel = Math.max(...levels.values());
 
     cy.elements().remove();
     cy.add(visible.map(h => ({
       group: 'nodes',
-      data: { id: h.id, label: h.name || '(unnamed)', holon: h },
+      data: {
+        id: h.id,
+        label: h.name || '(unnamed)',
+        holon: h,
+        level: levels.get(h.id),
+      },
       classes: h.id === rootId ? 'root' : '',
     })));
     cy.add(visibleRelationships.map(r => ({
@@ -78,7 +85,7 @@ export function createHolonGraph({ element, holons, relationships, onSelect, dep
 
     cy.layout({
       name: 'concentric',
-      concentric: node => node.id() === rootId ? currentDepth + 1 : currentDepth - nodeDistanceFromRoot(node.id(), rootId),
+      concentric: node => maxLevel - node.data('level'),
       levelWidth: () => 1,
       minNodeSpacing: 80,
       padding: 50,
@@ -88,32 +95,6 @@ export function createHolonGraph({ element, holons, relationships, onSelect, dep
     const rootNode = cy.getElementById(rootId);
     rootNode.select();
     cy.center(rootNode);
-  }
-
-  function nodeDistanceFromRoot(nodeId, rootId)
-  {
-    if (nodeId === rootId) return 0;
-    let frontier = new Set([rootId]);
-    const seen = new Set([rootId]);
-
-    for (let distance = 1; distance <= currentDepth; distance += 1)
-    {
-      const next = new Set();
-      for (const parentId of frontier)
-      {
-        relationships
-          .filter(r => r.target_holon_id === parentId)
-          .forEach(r => {
-            if (r.source_holon_id === nodeId) next.add(nodeId);
-            if (!seen.has(r.source_holon_id)) next.add(r.source_holon_id);
-          });
-      }
-      if (next.has(nodeId)) return distance;
-      next.forEach(id => seen.add(id));
-      frontier = next;
-      if (!frontier.size) break;
-    }
-    return currentDepth;
   }
 
   function normalizeDepth(value)
