@@ -65,6 +65,7 @@ export function createCFStatus(container, options = {})
   let previousState = null;
   let timer = null;
   let destroyed = false;
+  let endpointUnavailable = false;
 
   function render()
   {
@@ -111,7 +112,7 @@ export function createCFStatus(container, options = {})
 
   async function refresh()
   {
-    if (destroyed) return;
+    if (destroyed || endpointUnavailable) return;
 
     setState('checking');
 
@@ -122,6 +123,13 @@ export function createCFStatus(container, options = {})
         cache: 'no-store',
         headers: { Accept: 'application/json' },
       });
+
+      if (response.status === 404)
+      {
+        endpointUnavailable = true;
+        setState('unknown');
+        return;
+      }
 
       if (!response.ok)
         throw new Error(`CF status endpoint returned ${response.status}`);
