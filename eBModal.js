@@ -71,8 +71,6 @@ export function showModal({ title, fields = [], submitLabel = 'Save', cancelLabe
       control.required = field.type === 'combobox' && field.multiple ? false : !!field.required;
       if (field.placeholder) control.placeholder = field.placeholder;
 
-      // hcg-autocomplete requires input.parentNode during initialization,
-      // so attach the raw control to the modal DOM first.
       label.appendChild(control);
       body.appendChild(label);
 
@@ -111,6 +109,14 @@ export function showModal({ title, fields = [], submitLabel = 'Save', cancelLabe
     overlay.addEventListener('mousedown', event =>
     {
       if (event.target === overlay) cancel();
+    });
+    dialog.addEventListener('keydown', event =>
+    {
+      if (event.key === 'Escape')
+      {
+        event.preventDefault();
+        cancel();
+      }
     });
 
     dialog.addEventListener('submit', event =>
