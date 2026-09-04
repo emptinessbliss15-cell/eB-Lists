@@ -10,6 +10,7 @@ import { createTree } from './tree.js';
 import { eBStatus } from './eBStatus.js';
 import { createHolonGrid, createRelationshipGrid, setRelationships } from './grid.js';
 import { showModal } from './eBModal.js';
+import { createHolonGraph } from './graph.js';
 
 const status = eBStatus;
 const elements = {
@@ -19,15 +20,18 @@ const elements = {
   refresh: document.getElementById('refresh'), refreshApp: document.getElementById('refreshApp'), debugApp: document.getElementById('debugApp'),
   newHolon: document.getElementById('newHolon'), newHolonType: document.getElementById('newHolonType'), testComboBox: document.getElementById('testComboBox'),
   testStatusSuccess: document.getElementById('testStatusSuccess'), testStatusWarn: document.getElementById('testStatusWarn'), testStatusError: document.getElementById('testStatusError'),
+  graph: document.getElementById('holonGraph'),
 };
 let holons = [], relationships = [], relationshipTypes = [], holonTypes = [];
-let treeGrid = null, holonGrid = null, relationshipGrid = null;
+let treeGrid = null, holonGrid = null, relationshipGrid = null, holonGraph = null;
 
 function setStatus(text, level = 'info') { if (!text) return status.clear(); status[level](text); }
+function focusGraph(holon) { holonGraph?.focus(holon.id); }
 function openHolon(holon) {
   elements.activeList.textContent = holon.name || '(unnamed)';
   elements.listMode.textContent = holon.holon_type || 'Holon';
   setRelationships(relationshipGrid, relationships.filter(r => r.source_holon_id === holon.id || r.target_holon_id === holon.id));
+  focusGraph(holon);
 }
 function populateTreeSelectors() {
   elements.treeRoot.replaceChildren(...holons.map(h => Object.assign(document.createElement('option'), { value: h.id, textContent: h.name || '(unnamed)' })));
@@ -250,10 +254,11 @@ function holonMenu(event, holon, show) { show([{ label: 'New Holon', action: cre
 function relationshipMenu(event, relationship, show) { show([{ label: 'New Relationship', action: createRelationship }, { label: 'Edit', action: () => editRelationship(relationship) }, { label: 'Delete', action: () => deleteRelationship(relationship) }]); }
 
 function createViews() {
-  treeGrid?.destroy(); holonGrid?.destroy(); relationshipGrid?.destroy();
+  treeGrid?.destroy(); holonGrid?.destroy(); relationshipGrid?.destroy(); holonGraph?.cy.destroy();
   treeGrid = createTree({ element: elements.tree, holons, relationships, rootId: elements.treeRoot.value, relationshipTypeId: elements.treeRelationship.value, onSelect: openHolon, onCreate: createHolon, onEdit: editHolon, onDelete: deleteHolon });
   holonGrid = createHolonGrid({ element: elements.grid, holons, onSelect: openHolon, onContextMenu: holonMenu, onRowEdit: saveHolonCell });
   relationshipGrid = createRelationshipGrid({ element: elements.detailGrid, relationships, onContextMenu: relationshipMenu, onRowEdit: saveRelationshipCell });
+  holonGraph = createHolonGraph({ element: elements.graph, holons, relationships, onSelect: openHolon });
 }
 async function loadModel() {
   setStatus('Loading Holon model…');
@@ -263,7 +268,7 @@ async function loadModel() {
 async function applySession(session) {
   const user = session?.user || null; elements.app.hidden = !user; elements.refresh.disabled = !user;
   if (user) return loadModel();
-  holons = []; relationships = []; relationshipTypes = []; holonTypes = []; treeGrid?.destroy(); holonGrid?.destroy(); relationshipGrid?.destroy(); treeGrid = holonGrid = relationshipGrid = null; setStatus('Sign in to open the Holon Workspace');
+  holons = []; relationships = []; relationshipTypes = []; holonTypes = []; treeGrid?.destroy(); holonGrid?.destroy(); relationshipGrid?.destroy(); holonGraph?.cy.destroy(); treeGrid = holonGrid = relationshipGrid = holonGraph = null; setStatus('Sign in to open the Holon Workspace');
 }
 
 elements.treeRoot.addEventListener('change', createViews); elements.treeRelationship.addEventListener('change', createViews); elements.refresh.addEventListener('click', loadModel);
